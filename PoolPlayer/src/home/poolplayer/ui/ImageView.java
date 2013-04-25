@@ -8,12 +8,16 @@
  * Contributors:
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
-package home.poolplayer;
+package home.poolplayer.ui;
 
+import home.poolplayer.messaging.Messages;
+import home.poolplayer.ui.controller.Controller;
 import home.poolplayer.ui.imagecanvas.PoolCanvas;
 import home.poolplayer.ui.imagecanvas.SWTImageCanvas;
 
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.events.SelectionEvent;
+import org.eclipse.swt.events.SelectionListener;
 import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
@@ -34,7 +38,7 @@ import org.eclipse.ui.part.ViewPart;
  * @see uky.article.imageviewer.SWTImageCanvas
  */
 
-public class ImageView extends ViewPart {
+public class ImageView extends ViewPart implements SelectionListener  {
 	public static final String ID = "PoolPlayer.view";
 
 	public SWTImageCanvas imageCanvas;
@@ -56,6 +60,7 @@ public class ImageView extends ViewPart {
 		this.parent = frame;
 		setupComponents(parent);
 		layoutComponents();
+		addActionListeners();
 	}
 
 	private void setupComponents(Composite parent){
@@ -79,6 +84,10 @@ public class ImageView extends ViewPart {
 		imageCanvas.setLayoutData(d);	
 	}
 	
+	private void addActionListeners(){
+		startB.addSelectionListener(this);
+	}
+	
 	/**
 	 * Called when we must grab focus.
 	 * @see org.eclipse.ui.part.ViewPart#setFocus
@@ -95,4 +104,15 @@ public class ImageView extends ViewPart {
 		super.dispose();
 	}
 
+	@Override
+	public void widgetSelected(SelectionEvent e) {
+		if (e.getSource() == startB){
+			Controller.getInstance().firePropertyChangeEvent(Messages.START.name());
+		}
+			
+	}
+
+	@Override
+	public void widgetDefaultSelected(SelectionEvent e) {
+	}
 }

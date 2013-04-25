@@ -1,29 +1,27 @@
 package home.poolplayer.controller;
 
+import home.poolplayer.imagecapture.ImageCapture;
+import home.poolplayer.messaging.Messages;
+
+import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
-import java.beans.PropertyChangeSupport;
 
-public class Controller {
+public class Controller implements PropertyChangeListener {
 
-	private PropertyChangeSupport support;
-	
-	private static Controller instance;
-	
-	private Controller() {
-		support = new PropertyChangeSupport(this);
+	@Override
+	public void propertyChange(PropertyChangeEvent evt) {
+		switch(Messages.valueOf(evt.getPropertyName())){
+		case START:
+			startImageCapture();
+		case FRAME_AVAILABLE:
+			break;
+		default:
+			break;
+		}
 	}
 
-	public static Controller getInstance(){
-		if (instance == null)
-			instance = new Controller();
-		return instance;
-	}
-	
-	public void addListener(PropertyChangeListener listener){
-		support.addPropertyChangeListener(listener);
-	}
-	
-	public void removeListener(PropertyChangeListener listener){
-		support.removePropertyChangeListener(listener);
+	private void startImageCapture(){
+		ImageCapture imageCapture = ImageCapture.getInstance();
+		imageCapture.start();
 	}
 }

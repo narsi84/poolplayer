@@ -1,4 +1,4 @@
-package home.poolplayer;
+package home.poolplayer.ui;
 
 import org.eclipse.ui.IPageLayout;
 import org.eclipse.ui.IPerspectiveFactory;

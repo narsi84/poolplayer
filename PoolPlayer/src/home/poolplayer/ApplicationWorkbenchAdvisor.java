@@ -1,5 +1,7 @@
 package home.poolplayer;
 
+import home.poolplayer.ui.ApplicationWorkbenchWindowAdvisor;
+
 import org.eclipse.ui.application.IWorkbenchWindowConfigurer;
 import org.eclipse.ui.application.WorkbenchAdvisor;
 import org.eclipse.ui.application.WorkbenchWindowAdvisor;

@@ -1,4 +1,4 @@
-package home.poolplayer;
+package home.poolplayer.ui;
 
 import org.eclipse.ui.application.ActionBarAdvisor;
 import org.eclipse.ui.application.IActionBarConfigurer;

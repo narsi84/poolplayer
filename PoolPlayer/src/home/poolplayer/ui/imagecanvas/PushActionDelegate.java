@@ -1,5 +1,5 @@
 package home.poolplayer.ui.imagecanvas;
-import home.poolplayer.ImageView;
+import home.poolplayer.ui.ImageView;
 
 import org.eclipse.jface.action.IAction;
 import org.eclipse.jface.viewers.ISelection;
