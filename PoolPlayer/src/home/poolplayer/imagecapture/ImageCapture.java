@@ -3,6 +3,9 @@ package home.poolplayer.imagecapture;
 import home.poolplayer.messaging.Messages;
 import home.poolplayer.messaging.Messenger;
 
+import java.util.Arrays;
+
+import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.highgui.VideoCapture;
 
@@ -44,6 +47,7 @@ public class ImageCapture extends Thread {
 		writeIndx = 0;
 		buffer = new Mat[BUFFER_SIZE];
 		deviceId = 0;
+		capture = true;
 	}
 
 	public static ImageCapture getInstance() {
@@ -55,6 +59,13 @@ public class ImageCapture extends Thread {
 	@Override
 	public void run() {
 		videoCapture = new VideoCapture(deviceId);
+
+		//Wait for sometime. Otherwise the mac cam doesnt get initialized.
+		try {
+			Thread.sleep(2000);
+		} catch (InterruptedException e1) {
+			e1.printStackTrace();
+		}
 		if (!videoCapture.isOpened()) {
 			System.out
 					.println("No cam found. Image capture wont be initialized.");
@@ -63,14 +74,18 @@ public class ImageCapture extends Thread {
 
 		while (capture) {
 			Mat frame = new Mat();
-			boolean succes = videoCapture.retrieve(frame);
+			boolean succes = videoCapture.read(frame);
 			if (!succes){
 				//Cam closed or no video
 				break;
 			}
 			
+//			System.out.println("Frame captured");
+//			System.out.println("Frame stats: " + (int)frame.size().width + "x" + (int)frame.size().height + "x" + frame.channels() + ", " + CvType.typeToString(frame.type()) + ", " + frame.dataAddr());
+//			System.out.println(Arrays.toString(frame.get(0, 0)));
+			
 			buffer[writeIndx++ % BUFFER_SIZE] = frame;
-			Messenger.getInstance().firePropertyChangeEvent(Messages.FRAME_AVAILABLE.name(), frame);
+			Messenger.getInstance().broadcastMessage(Messages.MessageNames.FRAME_AVAILABLE.name(), frame);
 			try {
 				Thread.sleep(sleepTime);
 			} catch (InterruptedException e) {

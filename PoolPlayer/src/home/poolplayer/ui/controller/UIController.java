@@ -3,19 +3,19 @@ package home.poolplayer.ui.controller;
 import java.beans.PropertyChangeListener;
 import java.beans.PropertyChangeSupport;
 
-public class Controller {
+public class UIController {
 
 	private PropertyChangeSupport support;
 	
-	private static Controller instance;
+	private static UIController instance;
 	
-	private Controller() {
+	private UIController() {
 		support = new PropertyChangeSupport(this);
 	}
 
-	public static Controller getInstance(){
+	public static UIController getInstance(){
 		if (instance == null)
-			instance = new Controller();
+			instance = new UIController();
 		return instance;
 	}
 	

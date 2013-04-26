@@ -11,7 +11,7 @@
 package home.poolplayer.ui;
 
 import home.poolplayer.messaging.Messages;
-import home.poolplayer.ui.controller.Controller;
+import home.poolplayer.messaging.Messenger;
 import home.poolplayer.ui.imagecanvas.PoolCanvas;
 import home.poolplayer.ui.imagecanvas.SWTImageCanvas;
 
@@ -107,7 +107,7 @@ public class ImageView extends ViewPart implements SelectionListener  {
 	@Override
 	public void widgetSelected(SelectionEvent e) {
 		if (e.getSource() == startB){
-			Controller.getInstance().firePropertyChangeEvent(Messages.START.name());
+			Messenger.getInstance().broadcastMessage(Messages.MessageNames.START.name());
 		}
 			
 	}

@@ -1,7 +1,13 @@
 package home.poolplayer.messaging;
 
-public enum Messages {
+public class Messages {
 
-	FRAME_AVAILABLE,
-	START
+	public enum MessageNames {
+		START,
+		FRAME_AVAILABLE,
+	}
+	
+	public MessageNames name;
+	public Object oldVal;
+	public Object newVal;
 }
