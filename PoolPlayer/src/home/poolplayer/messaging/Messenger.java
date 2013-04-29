@@ -16,7 +16,7 @@ public class Messenger extends Thread{
 	private BlockingQueue<Messages> messageQ;
 	private Messenger(){
 		support = new PropertyChangeSupport(this);
-		messageQ = new ArrayBlockingQueue<Messages>(1000);
+		messageQ = new ArrayBlockingQueue<Messages>(10000);
 	}
 	
 	public static Messenger getInstance(){

@@ -3,9 +3,6 @@ package home.poolplayer.imagecapture;
 import home.poolplayer.messaging.Messages;
 import home.poolplayer.messaging.Messenger;
 
-import java.util.Arrays;
-
-import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.highgui.VideoCapture;
 
@@ -42,7 +39,7 @@ public class ImageCapture extends Thread {
 	private VideoCapture videoCapture;
 
 	private ImageCapture() {
-		frameRate = 30;
+		frameRate = 10;
 		sleepTime = Math.round(1000.0/frameRate);
 		writeIndx = 0;
 		buffer = new Mat[BUFFER_SIZE];
