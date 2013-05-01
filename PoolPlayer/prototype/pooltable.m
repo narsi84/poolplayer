@@ -1,9 +1,10 @@
 function pooltable
 clc;
 
-global fov table BALL_SIZE;
+global fov table BALL_SIZE accel;
 
 BALL_SIZE = 5;
+accel = 10;
 
 fov.width = 350;
 fov.height = 200;
@@ -41,7 +42,7 @@ plotCircle(target(1), target(2), BALL_SIZE, 'r');
 otherballs = [];
 % plotCircle(otherballs(1), otherballs(2), BALL_SIZE, 'b');
 
-for i=1:10
+for i=1:00
     randball = [rand*150+50 rand*120+40];
     plotCircle(randball(1), randball(2), BALL_SIZE, 'b');
     otherballs = [otherballs; randball];
@@ -51,8 +52,8 @@ for i=1:table.NUM_POCKETS
     pocket = table.pockets(i, :);
     ghost = findGhost(target, pocket);
 
-    plotCircle(ghost(1), ghost(2), BALL_SIZE, '--m');
-    plotCircle(pocket(1), pocket(2), table.pocket_r, '--g');
+%     plotCircle(ghost(1), ghost(2), BALL_SIZE, '--m');
+%     plotCircle(pocket(1), pocket(2), table.pocket_r, '--g');
 
     if isShotPossible(cue, ghost, pocket)
         
@@ -78,6 +79,9 @@ for i=1:table.NUM_POCKETS
         if pathClear
             plotCircle(ghost(1), ghost(2), BALL_SIZE, 'm');
             plotCircle(pocket(1), pocket(2), table.pocket_r, 'g');
+            
+            u_c = findInitVel(cue, ghost, target, pocket);
+            text(pocket(1), pocket(2), num2str(u_c));            
         end
     end
 end
@@ -86,6 +90,19 @@ end
 
 return
 
+%%Find initial velocity of cue to pot target into pocket
+function u_c = findInitVel(cue, ghost, target, pocket)
+global accel;
+
+theta_gc = atan2(ghost(2) - cue(2), ghost(1) - cue(1));
+theta_gt = atan2(target(2) - ghost(2), target(1) - ghost(1));
+theta_ct = theta_gc - theta_gt;
+s = norm(target - pocket);
+d = norm(cue - ghost);
+
+u_c = sqrt( 2*accel*s/(cos(theta_ct)*cos(theta_ct)) + 2*accel*d );
+
+return
 %% Is shot possible
 %The angle subtended at ghost by cue-ghost and ghost-pocket vectors must be
 %acute
