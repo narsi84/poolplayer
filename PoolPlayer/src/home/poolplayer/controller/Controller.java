@@ -2,6 +2,7 @@ package home.poolplayer.controller;
 
 import home.poolplayer.imagecapture.ImageCapture;
 import home.poolplayer.imageproc.ImageProcessor;
+import home.poolplayer.io.SettingsReader;
 import home.poolplayer.messaging.Messages;
 import home.poolplayer.messaging.Messages.MessageNames;
 import home.poolplayer.messaging.Messenger;
@@ -33,7 +34,7 @@ public class Controller implements PropertyChangeListener {
 	public void propertyChange(PropertyChangeEvent evt) {
 		switch(Messages.MessageNames.valueOf(evt.getPropertyName())){
 		case START:
-			startImageCapture();
+			startImageCapture();		
 			break;
 		case FRAME_AVAILABLE:
 			processFrame(evt.getNewValue());
@@ -52,5 +53,11 @@ public class Controller implements PropertyChangeListener {
 	private void startImageCapture(){
 		ImageCapture imageCapture = ImageCapture.getInstance();
 		imageCapture.start();
+	}
+	
+	public void loadSettings(String settingsFile) {
+		ImageCapture.getInstance().shutDown();
+		new SettingsReader(settingsFile);
+		ImageCapture.getInstance().start();
 	}
 }

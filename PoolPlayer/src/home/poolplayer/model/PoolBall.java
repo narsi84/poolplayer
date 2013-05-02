@@ -1,9 +1,6 @@
 package home.poolplayer.model;
 
-public class PoolBall {
-	private double x;
-	private double y;
-	private double r;
+public class PoolBall extends PoolCircle {
 	private BallType type = BallType.NONE;
 	
 	public PoolBall() {
@@ -22,30 +19,6 @@ public class PoolBall {
 		this.r = ball[2];
 	}
 	
-	public double getX() {
-		return x;
-	}
-
-	public void setX(double x) {
-		this.x = x;
-	}
-
-	public double getY() {
-		return y;
-	}
-
-	public void setY(double y) {
-		this.y = y;
-	}
-
-	public double getR() {
-		return r;
-	}
-
-	public void setR(double r) {
-		this.r = r;
-	}
-
 	public BallType getType() {
 		return type;
 	}

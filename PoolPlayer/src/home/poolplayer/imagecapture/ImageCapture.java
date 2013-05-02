@@ -2,8 +2,13 @@ package home.poolplayer.imagecapture;
 
 import home.poolplayer.messaging.Messages;
 import home.poolplayer.messaging.Messenger;
+import home.poolplayer.model.PoolTable;
 
+import org.opencv.core.Core;
+import org.opencv.core.CvType;
 import org.opencv.core.Mat;
+import org.opencv.core.Rect;
+import org.opencv.core.Scalar;
 import org.opencv.highgui.VideoCapture;
 
 /**
@@ -21,7 +26,7 @@ import org.opencv.highgui.VideoCapture;
 public class ImageCapture extends Thread {
 
 	private static ImageCapture instance;
-	private static int BUFFER_SIZE = 100;
+	private static int BUFFER_SIZE = 10;
 
 	private Mat[] buffer;
 	private int writeIndx;
@@ -30,7 +35,7 @@ public class ImageCapture extends Thread {
 
 	// Switch on or off
 	private boolean capture;
-	
+
 	private long sleepTime;
 
 	// ID to tell OpenCV which cam to get images from
@@ -40,7 +45,7 @@ public class ImageCapture extends Thread {
 
 	private ImageCapture() {
 		frameRate = 10;
-		sleepTime = Math.round(1000.0/frameRate);
+		sleepTime = Math.round(1000.0 / frameRate);
 		writeIndx = 0;
 		buffer = new Mat[BUFFER_SIZE];
 		deviceId = 0;
@@ -52,12 +57,13 @@ public class ImageCapture extends Thread {
 			instance = new ImageCapture();
 		return instance;
 	}
-	
+
 	@Override
-	public void run() {
+	public void run() {		
 		videoCapture = new VideoCapture(deviceId);
 
-		//Wait for sometime. Otherwise the mac cam doesnt get initialized.
+
+		// Wait for sometime. Otherwise the mac cam doesnt get initialized.
 		try {
 			Thread.sleep(2000);
 		} catch (InterruptedException e1) {
@@ -69,20 +75,30 @@ public class ImageCapture extends Thread {
 			return;
 		}
 
+		// Fill buffer first to take avg.
+		for (int i = 0; i < BUFFER_SIZE; i++) {
+			Mat frame = captureTableFrame();
+			if (frame == null){
+				videoCapture.release();
+				return;
+			}
+			
+			buffer[i] = frame;			
+		}
+
 		while (capture) {
-			Mat frame = new Mat();
-			boolean succes = videoCapture.read(frame);
-			if (!succes){
-				//Cam closed or no video
+
+			Mat frame = captureTableFrame();
+			if (frame == null){
 				break;
 			}
 			
-//			System.out.println("Frame captured");
-//			System.out.println("Frame stats: " + (int)frame.size().width + "x" + (int)frame.size().height + "x" + frame.channels() + ", " + CvType.typeToString(frame.type()) + ", " + frame.dataAddr());
-//			System.out.println(Arrays.toString(frame.get(0, 0)));
-			
-			buffer[writeIndx++ % BUFFER_SIZE] = frame;
-			Messenger.getInstance().broadcastMessage(Messages.MessageNames.FRAME_AVAILABLE.name(), frame);
+			writeIndx = ++writeIndx % BUFFER_SIZE;
+			buffer[writeIndx] = frame;
+
+			Mat avgImg = getAvgImage();
+			Messenger.getInstance().broadcastMessage(
+					Messages.MessageNames.FRAME_AVAILABLE.name(), avgImg);
 			try {
 				Thread.sleep(sleepTime);
 			} catch (InterruptedException e) {
@@ -91,6 +107,35 @@ public class ImageCapture extends Thread {
 		}
 
 		videoCapture.release();
+	}
+
+	private Mat captureTableFrame(){
+		Mat frame = new Mat();
+		boolean succes = videoCapture.read(frame);
+		if (!succes) {
+			System.out.println("No cam");
+			videoCapture.release();
+			return null;
+		}			
+		
+		PoolTable t = PoolTable.getInstance();
+		Rect roi = new  Rect(frame.width()/2 - t.getWidth()/2, frame.height()/2 - t.getHeight(), t.getWidth(), t.getHeight());
+		Mat tframe = frame.submat(roi);
+		Mat clone = tframe.clone();
+		clone.convertTo(clone, CvType.CV_16UC3);
+		
+		return clone;		
+	}
+	
+	private Mat getAvgImage() {
+		Mat avgImage = buffer[0].clone();
+		for (int i = 1; i < BUFFER_SIZE; i++) {
+			Core.add(avgImage, buffer[i], avgImage);
+		}
+		Core.multiply(avgImage, new Scalar(1.0/BUFFER_SIZE, 1.0/BUFFER_SIZE, 1.0/BUFFER_SIZE), avgImage);
+		
+		avgImage.convertTo(avgImage, CvType.CV_8UC3);
+		return avgImage;
 	}
 
 	public int getDeviceId() {
@@ -107,10 +152,19 @@ public class ImageCapture extends Thread {
 
 	public void setFrameRate(int frameRate) {
 		this.frameRate = frameRate;
-		sleepTime = Math.round(1000.0/frameRate);
+		sleepTime = Math.round(1000.0 / frameRate);
 	}
-	
-	public synchronized Mat getNextFrame(){
+
+	public synchronized Mat getNextFrame() {
 		return buffer[readIndx++ % BUFFER_SIZE];
 	}
+	
+	public void shutDown(){
+		capture = false;
+		instance = null;
+		
+		if (videoCapture != null)
+			videoCapture.release();
+	}
+	
 }
