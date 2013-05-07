@@ -2,13 +2,12 @@ package home.poolplayer.imagecapture;
 
 import home.poolplayer.messaging.Messages;
 import home.poolplayer.messaging.Messenger;
-import home.poolplayer.model.PoolTable;
 
 import org.opencv.core.Core;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
-import org.opencv.core.Rect;
 import org.opencv.core.Scalar;
+import org.opencv.highgui.Highgui;
 import org.opencv.highgui.VideoCapture;
 
 /**
@@ -26,7 +25,7 @@ import org.opencv.highgui.VideoCapture;
 public class ImageCapture extends Thread {
 
 	private static ImageCapture instance;
-	private static int BUFFER_SIZE = 10;
+	private static int BUFFER_SIZE = 50;
 
 	private Mat[] buffer;
 	private int writeIndx;
@@ -77,7 +76,7 @@ public class ImageCapture extends Thread {
 
 		// Fill buffer first to take avg.
 		for (int i = 0; i < BUFFER_SIZE; i++) {
-			Mat frame = captureTableFrame();
+			Mat frame = captureTableFrameTest();
 			if (frame == null){
 				videoCapture.release();
 				return;
@@ -88,7 +87,7 @@ public class ImageCapture extends Thread {
 
 		while (capture) {
 
-			Mat frame = captureTableFrame();
+			Mat frame = captureTableFrameTest();
 			if (frame == null){
 				break;
 			}
@@ -109,6 +108,16 @@ public class ImageCapture extends Thread {
 		videoCapture.release();
 	}
 
+	private Mat captureTableFrameTest(){
+		int indx = (int) (Math.random()*14 + 1);
+		Mat frame = Highgui.imread("/Users/narsir/Documents/Projects/Poolplayer/images/table_" + indx + ".png");
+
+		Mat clone = frame.clone();
+		clone.convertTo(clone, CvType.CV_16UC3);
+		
+		return clone;
+	}
+	
 	private Mat captureTableFrame(){
 		Mat frame = new Mat();
 		boolean succes = videoCapture.read(frame);
@@ -118,10 +127,11 @@ public class ImageCapture extends Thread {
 			return null;
 		}			
 		
-		PoolTable t = PoolTable.getInstance();
-		Rect roi = new  Rect(frame.width()/2 - t.getWidth()/2, frame.height()/2 - t.getHeight(), t.getWidth(), t.getHeight());
+/*		PoolTable t = PoolTable.getInstance();
+		Rect roi = new  Rect(t.getX(), t.getY(), t.getWidth(), t.getHeight());
 		Mat tframe = frame.submat(roi);
-		Mat clone = tframe.clone();
+*/		
+		Mat clone = frame.clone();
 		clone.convertTo(clone, CvType.CV_16UC3);
 		
 		return clone;		

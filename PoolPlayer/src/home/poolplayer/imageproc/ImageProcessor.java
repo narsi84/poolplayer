@@ -1,13 +1,17 @@
 package home.poolplayer.imageproc;
 
+import home.poolplayer.controller.Controller;
 import home.poolplayer.model.BallType;
 import home.poolplayer.model.PoolBall;
+import home.poolplayer.model.PoolCircle;
+import home.poolplayer.model.PoolTable;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import org.opencv.core.Core;
 import org.opencv.core.Mat;
+import org.opencv.core.Rect;
 import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
 
@@ -32,15 +36,21 @@ public class ImageProcessor {
 		params = new AnalysisParams();
 	}
 
-	public List<PoolBall> findBalls(Mat table) {
-		this.table = table;
-
+	public List<PoolBall> findBalls(Mat img) {
+		PoolTable t = Controller.getInstance().getTable();
+		Rect roi = new  Rect(t.getX(), t.getY(), t.getWidth(), t.getHeight());
+		table = img.submat(roi);
+	
 		this.balls.clear();
 
 		doHoughTx();
 		removeNoisyBalls();
+		removeBallsInPockets();
 		findBallType();
 		findCueBall();
+		
+		findAvgBallSize();
+		
 		return balls;
 	}
 
@@ -80,14 +90,29 @@ public class ImageProcessor {
 				double dist = Math.sqrt((c1.getX() - c2.getX())
 						* (c1.getX() - c2.getX()) + (c1.getY() - c2.getY())
 						* (c1.getY() - c2.getY()));
-				if (dist < 5)
-					toRemove.add(c1);
+				if (dist < 5){
+					if (c1.getR() < c2.getR())
+						toRemove.add(c1);
+					else
+						toRemove.add(c2);
+				}
 			}
 		}
 
 		balls.removeAll(toRemove);
 	}
 
+	private void removeBallsInPockets(){
+		List<PoolBall> toRemove = new ArrayList<PoolBall>();
+		for(PoolBall ball : balls){
+			for(PoolCircle pocket : Controller.getInstance().getTable().getPockets()){
+				if (pocket.isPointWithin(ball.getX(), ball.getY()))
+					toRemove.add(ball);
+			}
+		}
+		balls.removeAll(toRemove);
+	}
+	
 	private void findBallType() {
 		for (PoolBall c : balls) {
 			double totPix = 0;
@@ -159,6 +184,16 @@ public class ImageProcessor {
 		}
 	}
 
+	private void findAvgBallSize(){
+		double r = 0;
+		for(PoolBall ball : balls){
+			r += ball.getR();
+		}
+		if (balls.size() > 0)
+			PoolBall.AVG_SIZE = r/balls.size();
+		else
+			PoolBall.AVG_SIZE = 0;
+	}
 	public Mat getTable() {
 		return table;
 	}

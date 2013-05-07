@@ -1,9 +1,12 @@
 package home.poolplayer.io;
 
 public enum SettingNames {
+	TABLE_X,
+	TABLE_Y,
 	TABLE_WIDTH,
 	TABLE_HEIGHT,
 	TABLE_FRICTION,
+	POCKET_RADIUS,
 	
 	MIN_CIRC_DIST,
 	HOUGH_THR,

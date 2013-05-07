@@ -1,5 +1,6 @@
 package home.poolplayer.io;
 
+import home.poolplayer.controller.Controller;
 import home.poolplayer.imagecapture.ImageCapture;
 import home.poolplayer.imageproc.AnalysisParams;
 import home.poolplayer.imageproc.ImageProcessor;
@@ -16,7 +17,7 @@ public class SettingsReader extends ConfigFileReader {
 
 	public SettingsReader(String fname) {
 		super(fname);
-		parseSections();
+		parseSections();		
 	}
 
 	private void parseSections() {
@@ -85,11 +86,17 @@ public class SettingsReader extends ConfigFileReader {
 	}
 
 	private void parseTableSettings(Section section){
-		PoolTable table = PoolTable.getInstance();
+		PoolTable table = Controller.getInstance().getTable();
 
 		Properties props = section.getProps();
 		
 		String val;
+		val = props.getProperty(SettingNames.TABLE_X.name());
+		table.setX(Integer.parseInt(val));
+
+		val = props.getProperty(SettingNames.TABLE_Y.name());
+		table.setY(Integer.parseInt(val));
+
 		val = props.getProperty(SettingNames.TABLE_HEIGHT.name());
 		table.setHeight(Integer.parseInt(val));
 
@@ -98,5 +105,10 @@ public class SettingsReader extends ConfigFileReader {
 
 		val = props.getProperty(SettingNames.TABLE_FRICTION.name());
 		table.setFriction(Double.parseDouble(val));
+
+		val = props.getProperty(SettingNames.POCKET_RADIUS.name());
+		table.setPocketRadius(Integer.parseInt(val));
+		
+		table.initPocketPositions();
 	}
 }

@@ -7,9 +7,11 @@ import home.poolplayer.messaging.Messages;
 import home.poolplayer.messaging.Messages.MessageNames;
 import home.poolplayer.messaging.Messenger;
 import home.poolplayer.model.PoolBall;
+import home.poolplayer.model.PoolTable;
 
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.opencv.core.Mat;
@@ -18,10 +20,16 @@ public class Controller implements PropertyChangeListener {
 
 	public static Controller instance;
 	
+	private List<PoolBall> balls;
+	private PoolTable table;
+	
 	private Controller(){
-		Messenger.getInstance().addListener(this);
 		System.loadLibrary("cv2.so");
 		System.loadLibrary("libopencv_java245.dylib");
+		
+		Messenger.getInstance().addListener(this);
+		table = new PoolTable();
+		balls = new ArrayList<PoolBall>();
 	}
 	
 	public static Controller getInstance(){
@@ -30,12 +38,21 @@ public class Controller implements PropertyChangeListener {
 		return instance;
 	}
 	
+	public List<PoolBall> getBalls() {
+		return balls;
+	}
+	
+	public void setBalls(List<PoolBall> balls) {
+		this.balls = balls;
+	}
+	
+	public PoolTable getTable() {
+		return table;
+	}
+	
 	@Override
 	public void propertyChange(PropertyChangeEvent evt) {
 		switch(Messages.MessageNames.valueOf(evt.getPropertyName())){
-		case START:
-			startImageCapture();		
-			break;
 		case FRAME_AVAILABLE:
 			processFrame(evt.getNewValue());
 			break;
@@ -46,18 +63,15 @@ public class Controller implements PropertyChangeListener {
 
 	private void processFrame(Object evtValue){		
 		ImageProcessor p = ImageProcessor.getInstance();
-		List<PoolBall> balls = p.findBalls((Mat)evtValue);
+		List<PoolBall> ballsDetected = p.findBalls((Mat)evtValue);
+		balls = ballsDetected;
 		Messenger.getInstance().broadcastMessage(MessageNames.BALLS_DETECTED.name(), balls);
-	}
-	
-	private void startImageCapture(){
-		ImageCapture imageCapture = ImageCapture.getInstance();
-		imageCapture.start();
 	}
 	
 	public void loadSettings(String settingsFile) {
 		ImageCapture.getInstance().shutDown();
 		new SettingsReader(settingsFile);
+		
 		ImageCapture.getInstance().start();
 	}
 }

@@ -6,34 +6,37 @@ import java.util.List;
 public class PoolTable {
 
 	public static int NUM_POCKETS = 6;
-	
+
 	private int height;
 	private int width;
-	
+	private int x;
+	private int y;
+
 	private List<PoolCircle> pockets;
-	
+	private int pocketRadius;
+
 	private double friction;
 
-	private static PoolTable instance;
-	
-	private PoolTable(){		
+	public PoolTable() {
 		pockets = new ArrayList<PoolCircle>();
-		
-		width = 600;
-		height = 300;
-		friction = 5;
-		
-		initPocketPositions();
 	}
-	
-	private void initPocketPositions(){
-		
-	}
-	
-	public static PoolTable getInstance(){
-		if (instance == null)
-			instance = new PoolTable();
-		return instance;
+
+	public void initPocketPositions() {
+		pockets.clear();
+
+		PoolCircle tl = new PoolCircle(x, y, pocketRadius);
+		PoolCircle tc = new PoolCircle(x + width / 2, y, pocketRadius);
+		PoolCircle tr = new PoolCircle(x + width, y, pocketRadius);
+		PoolCircle bl = new PoolCircle(x, y + height, pocketRadius);
+		PoolCircle bc = new PoolCircle(x + width / 2, y + height, pocketRadius);
+		PoolCircle br = new PoolCircle(x + width, y + height, pocketRadius);
+
+		pockets.add(tl);
+		pockets.add(tc);
+		pockets.add(tr);
+		pockets.add(bl);
+		pockets.add(bc);
+		pockets.add(br);
 	}
 
 	public int getHeight() {
@@ -52,6 +55,22 @@ public class PoolTable {
 		this.width = width;
 	}
 
+	public int getX() {
+		return x;
+	}
+
+	public void setX(int x) {
+		this.x = x;
+	}
+
+	public int getY() {
+		return y;
+	}
+
+	public void setY(int y) {
+		this.y = y;
+	}
+
 	public List<PoolCircle> getPockets() {
 		return pockets;
 	}
@@ -66,5 +85,13 @@ public class PoolTable {
 
 	public void setFriction(double friction) {
 		this.friction = friction;
+	}
+
+	public int getPocketRadius() {
+		return pocketRadius;
+	}
+
+	public void setPocketRadius(int pocketRadius) {
+		this.pocketRadius = pocketRadius;
 	}
 }
