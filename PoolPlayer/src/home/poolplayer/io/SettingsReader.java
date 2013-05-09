@@ -14,6 +14,7 @@ public class SettingsReader extends ConfigFileReader {
 	public static final String TABLE_SETTINGS = "Table";
 	public static final String ANALYSIS_PARAMS = "Analysis";
 	public static final String CAPTURE_SETTINGS = "Capture";
+	public static final String GAME_SETTINGS = "Game";
 
 	public SettingsReader(String fname) {
 		super(fname);
@@ -26,6 +27,8 @@ public class SettingsReader extends ConfigFileReader {
 			return;
 		
 		for(Section sec : sections) {
+			if (sec.getName().compareToIgnoreCase(GAME_SETTINGS) == 0)
+				parseGameSettings(sec);
 			if (sec.getName().compareToIgnoreCase(TABLE_SETTINGS) == 0)
 				parseTableSettings(sec);
 			if (sec.getName().compareToIgnoreCase(ANALYSIS_PARAMS) == 0)
@@ -35,14 +38,20 @@ public class SettingsReader extends ConfigFileReader {
 		}
 	}
 	
+	private void parseGameSettings(Section section){
+		String val;
+		
+		Properties props = section.getProps();
+		
+		val = props.getProperty(SettingNames.SOLIDS.name());
+		Controller.getInstance().setSolids(Boolean.parseBoolean(val));
+	}
+
 	private void parseCaptureSettings(Section section){
 		ImageCapture capture = ImageCapture.getInstance();
 		String val;
 		
 		Properties props = section.getProps();
-		
-		val = props.getProperty(SettingNames.FRAME_RATE.name());
-		capture.setFrameRate(Integer.parseInt(val));
 		
 		val = props.getProperty(SettingNames.DEVICE_ID.name());
 		capture.setDeviceId(Integer.parseInt(val));				
@@ -107,8 +116,6 @@ public class SettingsReader extends ConfigFileReader {
 		table.setFriction(Double.parseDouble(val));
 
 		val = props.getProperty(SettingNames.POCKET_RADIUS.name());
-		table.setPocketRadius(Integer.parseInt(val));
-		
-		table.initPocketPositions();
+		table.setPocketRadius(Integer.parseInt(val));		
 	}
 }

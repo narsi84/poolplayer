@@ -1,11 +1,138 @@
 package home.poolplayer.shotcalculator;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import home.poolplayer.controller.Controller;
 import home.poolplayer.model.BallType;
 import home.poolplayer.model.PoolBall;
 import home.poolplayer.model.PoolCircle;
+import home.poolplayer.model.Shot;
 
 public class ShotCalculator {
+
+	public static Shot findBestShot(){
+		List<Shot> possibleShots = findPossibleShots();
+		if (possibleShots == null || possibleShots.isEmpty())
+			return null;			
+
+		Shot bestShot = possibleShots.get(0);
+		for(int i=1; i<possibleShots.size(); i++){
+			Shot shot = possibleShots.get(i);
+			if (shot.velocity < bestShot.velocity)
+				bestShot = shot;
+		}
+		
+		return bestShot;
+	}
+	
+	private static List<Shot> findPossibleShots() {
+		List<Shot> possibleShots = new ArrayList<Shot>();
+
+		List<PoolBall> cueBalls = findBallsOfType(BallType.CUE);
+		if (cueBalls == null || cueBalls.get(0) == null) {
+			System.out.println("No cue balls detected");
+			return null;
+		}
+
+		if (cueBalls.size() > 1) {
+			System.out
+					.println("Multiple cue balls detected. Picking the first one");
+		}
+		PoolBall cueBall = cueBalls.get(0);
+
+		List<PoolBall> targets = findLegitTargets();
+		
+		if (targets == null || targets.isEmpty()){
+			System.out.println("Solids? : " + Controller.getInstance().isSolids() + ". No balls of that type or black found");
+			return null;
+		}
+		
+		for (PoolBall target : targets) {
+			for (PoolCircle pocket : Controller.getInstance().getTable()
+					.getPockets()) {
+
+				PoolBall ghost = findGhost(target, pocket);
+
+				if (!isShotPossible(ghost, cueBall, pocket))
+					continue;
+
+				// Check if any ball other than cue and target themselves are on
+				// the path from cueBall to ghost
+				boolean pathClear = true;
+				for (PoolBall otherBall : Controller.getInstance().getBalls()) {
+					if (otherBall == cueBall || otherBall == target)
+						continue;
+
+					if (isBallInPath(cueBall, ghost, otherBall)) {
+						pathClear = false;
+						break;
+					}
+				}
+
+				// Move on to next pocket
+				if (!pathClear)
+					continue;
+
+				// Check if any ball other than target are on the path from
+				// target to pocket
+				pathClear = true;
+				for (PoolBall otherBall : Controller.getInstance().getBalls()) {
+					if (otherBall == target)
+						continue;
+
+					if (isBallInPath(target, pocket, otherBall)) {
+						pathClear = false;
+						break;
+					}
+				}
+
+				// Move on to next pocket
+				if (!pathClear)
+					continue;
+
+				double initVel = findInitalVelocity(cueBall, ghost, target,
+						pocket);
+				Shot shot = new Shot();
+				shot.ballOn = target;
+				shot.cueBall = cueBall;
+				shot.ghost = ghost;
+				shot.pocket = pocket;
+				shot.stick = Controller.getInstance().getCueStick();
+				shot.velocity = initVel;
+
+				possibleShots.add(shot);
+			}
+		}
+		return possibleShots;
+	}
+
+	private static List<PoolBall> findLegitTargets() {
+		BallType type = Controller.getInstance().isSolids() ? BallType.SOLID
+				: BallType.STRIPE;
+
+		List<PoolBall> targets = findBallsOfType(type);
+
+		// No possible balls. All potted. Check for black
+		if (targets.isEmpty()) {
+			targets = findBallsOfType(BallType.BLACK);
+			if (targets.isEmpty() || targets.get(0) == null)
+				return null;
+
+			return targets;
+		}
+
+		return targets;
+	}
+
+	private static List<PoolBall> findBallsOfType(BallType type) {
+		List<PoolBall> balls = new ArrayList<PoolBall>();
+		for (PoolBall ball : Controller.getInstance().getBalls()) {
+			if (ball.getType() == type)
+				balls.add(ball);
+		}
+		return balls;
+	}
 
 	private static PoolBall findGhost(PoolBall ball, PoolCircle pocket) {
 		double theta = Math.atan2(pocket.getY() - ball.getY(), pocket.getX()
@@ -17,7 +144,7 @@ public class ShotCalculator {
 	}
 
 	private static boolean isBallInPath(PoolCircle src_t, PoolCircle dest_t,
-			PoolCircle ball) {
+			PoolBall ball) {
 		if (norm(src_t, ball) < 2 * PoolBall.AVG_SIZE
 				|| norm(dest_t, ball) < 2 * PoolBall.AVG_SIZE)
 			return true;
@@ -83,14 +210,14 @@ public class ShotCalculator {
 	}
 
 	// The angle subtended at ghost by cue-ghost and ghost-pocket vectors must
-	// be acute
+	// be obtuse
 	private static boolean isShotPossible(PoolBall ghost, PoolBall cue,
 			PoolCircle pocket) {
-		return angleAt(ghost, cue, pocket) < Math.PI / 2 ? true : false;
+		return angleAt(ghost, cue, pocket) < Math.PI / 2 ? false : true;
 	}
 
 	// Find initial velocity of cue to pot target into pocket
-	private static double fintInitalVelocity(PoolBall cue, PoolBall ghost,
+	private static double findInitalVelocity(PoolBall cue, PoolBall ghost,
 			PoolBall target, PoolCircle pocket) {
 		double accel = Controller.getInstance().getTable().getFriction();
 

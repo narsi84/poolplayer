@@ -30,4 +30,8 @@ public class UIController {
 	public void firePropertyChangeEvent(String evt){
 		support.firePropertyChange(evt, null, null);
 	}
+	
+	public void firePropertyChangeEvent(String evt, Object newVal){
+		support.firePropertyChange(evt, null, newVal);
+	}
 }

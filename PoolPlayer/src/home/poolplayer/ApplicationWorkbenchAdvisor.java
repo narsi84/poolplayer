@@ -1,5 +1,6 @@
 package home.poolplayer;
 
+import home.poolplayer.controller.Controller;
 import home.poolplayer.ui.ApplicationWorkbenchWindowAdvisor;
 
 import org.eclipse.ui.application.IWorkbenchWindowConfigurer;
@@ -17,6 +18,19 @@ public class ApplicationWorkbenchAdvisor extends WorkbenchAdvisor {
 
 	public String getInitialWindowPerspectiveId() {
 		return PERSPECTIVE_ID;
+	}
+	
+	@Override
+	public boolean preShutdown() {
+		Controller.getInstance().setGameon(false);
+		//Wait for messages to get delivered
+		try {
+			Thread.sleep(2000);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+		
+		return super.preShutdown();
 	}
 
 }

@@ -3,9 +3,13 @@ package home.poolplayer.ui.imagecanvas;
 import home.poolplayer.controller.Controller;
 import home.poolplayer.messaging.Messages;
 import home.poolplayer.messaging.Messenger;
+import home.poolplayer.model.CueStick;
 import home.poolplayer.model.PoolBall;
 import home.poolplayer.model.PoolCircle;
 import home.poolplayer.model.PoolTable;
+import home.poolplayer.model.Shot;
+import home.poolplayer.ui.actions.UIMessages;
+import home.poolplayer.ui.controller.UIController;
 import home.poolplayer.ui.utils.ConversionUtils;
 
 import java.beans.PropertyChangeEvent;
@@ -20,6 +24,7 @@ import org.eclipse.swt.events.MouseMoveListener;
 import org.eclipse.swt.events.PaintEvent;
 import org.eclipse.swt.events.PaintListener;
 import org.eclipse.swt.graphics.Color;
+import org.eclipse.swt.graphics.Font;
 import org.eclipse.swt.graphics.GC;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.graphics.ImageData;
@@ -39,9 +44,16 @@ public class PoolCanvas extends Canvas implements PropertyChangeListener,
 	private static Color NONE = new Color(Display.getDefault(), 255, 0, 255);
 	private static Color TABLE_COLOR = new Color(Display.getDefault(), 255,
 			255, 255);
+	private static Color CUESTICK_COLOR = new Color(Display.getDefault(), 255,
+			0, 0);
+	private static Color SHOT_COLOR = new Color(Display.getDefault(), 255, 255,
+			255);
 
+	private static Font FONT = new Font(Display.getDefault(),"Arial",14,SWT.BOLD | SWT.ITALIC);
+	
 	private List<PoolBall> balls;
 	private Image image;
+	private Shot shot;
 
 	// aspect ratio
 	private float arX, arY;
@@ -66,6 +78,10 @@ public class PoolCanvas extends Canvas implements PropertyChangeListener,
 	@SuppressWarnings("unchecked")
 	@Override
 	public void propertyChange(final PropertyChangeEvent evt) {
+		// Reset the shot object. It will get populated when there is a valid
+		// shot. Otherwise we may end up showing the last valid shot
+		shot = null;
+
 		switch (Messages.MessageNames.valueOf(evt.getPropertyName())) {
 		case FRAME_AVAILABLE:
 			Display.getDefault().asyncExec(new Runnable() {
@@ -77,8 +93,8 @@ public class PoolCanvas extends Canvas implements PropertyChangeListener,
 					setImageData(idata);
 				}
 			});
-
 			break;
+			
 		case BALLS_DETECTED:
 			Display.getDefault().asyncExec(new Runnable() {
 
@@ -96,6 +112,28 @@ public class PoolCanvas extends Canvas implements PropertyChangeListener,
 				}
 			});
 			break;
+			
+		case CUESTICK_DETECTED:
+			Display.getDefault().asyncExec(new Runnable() {
+
+				@Override
+				public void run() {
+					redraw();
+				}
+			});
+			break;
+			
+		case SHOT_FOUND:
+			shot = (Shot) evt.getNewValue();
+			Display.getDefault().asyncExec(new Runnable() {
+
+				@Override
+				public void run() {
+					redraw();
+				}
+			});
+			break;
+			
 		default:
 			break;
 		}
@@ -126,6 +164,48 @@ public class PoolCanvas extends Canvas implements PropertyChangeListener,
 				canvasRect.width, canvasRect.height);
 		drawBalls(gc);
 		drawTable(gc);
+		drawCueStick(gc);
+		drawShot(gc);
+	}
+
+	private void drawCueStick(GC gc) {
+		CueStick stick = Controller.getInstance().getCueStick();
+		if (stick == null)
+			return;
+		
+		int x1 = (int) (stick.start.x * arX);
+		int y1 = (int) (stick.start.y * arY);
+		int x2 = (int) (stick.end.x * arX);
+		int y2 = (int) (stick.end.y * arY);
+
+		gc.setForeground(CUESTICK_COLOR);
+		gc.setLineWidth(3);
+		gc.setAlpha(255);
+		gc.drawLine(x1, y1, x2, y2);
+	}
+
+	private void drawShot(GC gc) {
+		if (shot == null)
+			return;
+
+		gc.setForeground(SHOT_COLOR);
+		gc.setLineStyle(SWT.LINE_DASH);
+		gc.setAlpha(255);
+		
+		double r = shot.ghost.getR();
+		int x = (int) ((shot.ghost.getX() - r) * arX);
+		int y = (int) ((shot.ghost.getY() - r) * arY);
+
+		gc.drawOval(x, y, (int) (r * arX * 2), (int) (r
+				* arY * 2));
+
+		int textPosX = (int)( shot.pocket.getX() * arX);
+		int textPosY = (int)( shot.pocket.getY() * arY);
+		
+		gc.setLineStyle(SWT.LINE_SOLID);
+		gc.setForeground(BLACK);
+		gc.setFont(FONT);
+		gc.drawText(Integer.toString((int)(shot.velocity)), textPosX, textPosY, true);
 	}
 
 	private void drawTable(GC gc) {
@@ -181,10 +261,8 @@ public class PoolCanvas extends Canvas implements PropertyChangeListener,
 				gc.setForeground(NONE);
 			}
 
-			PoolTable table = Controller.getInstance().getTable();
-
-			int x = (int) ((ball.getX() - ball.getR() + table.getX()) * arX);
-			int y = (int) ((ball.getY() - ball.getR() + table.getY()) * arY);
+			int x = (int) ((ball.getX() - ball.getR()) * arX);
+			int y = (int) ((ball.getY() - ball.getR()) * arY);
 
 			gc.drawOval(x, y, (int) (ball.getR() * arX * 2), (int) (ball.getR()
 					* arY * 2));
@@ -213,11 +291,15 @@ public class PoolCanvas extends Canvas implements PropertyChangeListener,
 
 	@Override
 	public void mouseMove(MouseEvent evt) {
-		if (!mouseDown || nearestPocket == null)
-			return;
-		
 		double x = evt.x / arX;
 		double y = evt.y / arY;
+		
+		String coords = x + ", " + y;
+		UIController.getInstance().firePropertyChangeEvent(UIMessages.SHOW_COORDS.name(), coords);
+		
+		if (!mouseDown || nearestPocket == null)
+			return;
+
 		nearestPocket.setX(x);
 		nearestPocket.setY(y);
 		redraw();
@@ -231,7 +313,7 @@ public class PoolCanvas extends Canvas implements PropertyChangeListener,
 			if (poc.isPointWithin(x, y))
 				return poc;
 		}
-		
+
 		return null;
 	}
 

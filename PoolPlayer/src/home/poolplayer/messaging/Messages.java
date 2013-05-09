@@ -4,7 +4,9 @@ public class Messages {
 
 	public enum MessageNames {
 		FRAME_AVAILABLE,
-		BALLS_DETECTED
+		BALLS_DETECTED,
+		CUESTICK_DETECTED,
+		SHOT_FOUND,
 	}
 	
 	public MessageNames name;

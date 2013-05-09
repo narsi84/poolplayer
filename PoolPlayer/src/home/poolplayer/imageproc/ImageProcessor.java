@@ -2,6 +2,7 @@ package home.poolplayer.imageproc;
 
 import home.poolplayer.controller.Controller;
 import home.poolplayer.model.BallType;
+import home.poolplayer.model.CueStick;
 import home.poolplayer.model.PoolBall;
 import home.poolplayer.model.PoolCircle;
 import home.poolplayer.model.PoolTable;
@@ -10,8 +11,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.opencv.core.Core;
+import org.opencv.core.CvType;
 import org.opencv.core.Mat;
+import org.opencv.core.Point;
 import org.opencv.core.Rect;
+import org.opencv.core.Scalar;
 import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
 
@@ -23,7 +27,7 @@ public class ImageProcessor {
 	private List<PoolBall> balls;
 	private AnalysisParams params;
 
-	private Mat table;
+	private Mat tableImg;
 	
 	public static ImageProcessor getInstance(){
 		if (instance == null)
@@ -39,24 +43,58 @@ public class ImageProcessor {
 	public List<PoolBall> findBalls(Mat img) {
 		PoolTable t = Controller.getInstance().getTable();
 		Rect roi = new  Rect(t.getX(), t.getY(), t.getWidth(), t.getHeight());
-		table = img.submat(roi);
+		tableImg = img.submat(roi);
 	
 		this.balls.clear();
 
-		doHoughTx();
+		findHoughCircles();
 		removeNoisyBalls();
 		removeBallsInPockets();
 		findBallType();
 		findCueBall();
 		
-		findAvgBallSize();
+		// Set global coordinates
+		for (PoolBall ball : balls){
+			ball.setX(ball.getX() + t.getX());
+			ball.setY(ball.getY() + t.getY());
+		}
 		
+		findAvgBallSize();
+
 		return balls;
 	}
-
-	private void doHoughTx() {
+	
+	public CueStick findCueStick(Mat img){
 		List<Mat> rgb = new ArrayList<Mat>();
-		Core.split(table, rgb);
+		Core.split(img, rgb);
+
+		Mat minChannel = new Mat(img.size(), CvType.CV_8UC1, new Scalar(255));
+		for(Mat channel : rgb)
+			Core.min(channel, minChannel, minChannel);
+		
+		Mat redChannel = new Mat();
+		Core.subtract(rgb.get(2), minChannel, redChannel);
+
+		Mat smooth = new Mat();
+		Imgproc.GaussianBlur(redChannel, smooth, new Size(5.0, 5.0), 0.5);
+
+		Mat edges = new Mat();
+		Imgproc.Canny(redChannel, edges, params.getHoughThreshold()/2, params.getHoughThreshold());
+
+		Mat lines = new Mat();
+		Imgproc.HoughLinesP(edges, lines, 1, Math.PI / 180, 40, 40, 20);
+		
+		double[] line = lines.get(0, 0);
+		CueStick cueStick = new CueStick();
+		cueStick.start = new Point(line[0], line[1]);
+		cueStick.end = new Point(line[2], line[3]);
+		                                                     
+		return cueStick;
+	}
+
+	private void findHoughCircles() {
+		List<Mat> rgb = new ArrayList<Mat>();
+		Core.split(tableImg, rgb);
 
 		Mat circles = new Mat();
 
@@ -126,13 +164,13 @@ public class ImageProcessor {
 							+ (j - c.getY()) * (j - c.getY())) <= c.getR()))
 						continue;
 
-					if (i < 0 || i >= table.width() || j < 0
-							|| j >= table.height())
+					if (i < 0 || i >= tableImg.width() || j < 0
+							|| j >= tableImg.height())
 						continue;
 
 					totPix++;
 
-					double[] pixVals = table.get(j, i);
+					double[] pixVals = tableImg.get(j, i);
 					if (pixVals == null)
 						System.out.println(i + ", " + j);
 					double maxval = pixVals[0] > pixVals[1] ? pixVals[0]
@@ -191,18 +229,9 @@ public class ImageProcessor {
 		}
 		if (balls.size() > 0)
 			PoolBall.AVG_SIZE = r/balls.size();
-		else
-			PoolBall.AVG_SIZE = 0;
 	}
-	public Mat getTable() {
-		return table;
-	}
-
+	
 	public AnalysisParams getParams() {
 		return params;
-	}
-
-	public void setParams(AnalysisParams params) {
-		this.params = params;
 	}
 }

@@ -19,6 +19,7 @@ public enum SettingNames {
 	BLACK_PIXEL_RATIO,
 	WHITE_PIXEL_RATIO,
 	
-	FRAME_RATE,
-	DEVICE_ID
+	DEVICE_ID,
+	
+	SOLIDS,
 }
