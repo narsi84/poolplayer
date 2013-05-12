@@ -7,6 +7,7 @@ public class Messages {
 		BALLS_DETECTED,
 		CUESTICK_DETECTED,
 		SHOT_FOUND,
+		ROBOT_DETECTED,
 	}
 	
 	public MessageNames name;

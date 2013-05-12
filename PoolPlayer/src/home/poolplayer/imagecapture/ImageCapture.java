@@ -10,7 +10,9 @@ import org.opencv.highgui.VideoCapture;
 public class ImageCapture {
 
 	private static ImageCapture instance;
-	private static int BUFFER_SIZE = 50;
+	private static int BUFFER_SIZE = 10;
+	
+	private static int FRAME_INDEX;
 
 	// ID to tell OpenCV which cam to get images from
 	private int deviceId;
@@ -73,8 +75,12 @@ public class ImageCapture {
 	}
 
 	private Mat captureTableFrameTest(){
-		int indx = (int) (Math.random()*14 + 1);
-		Mat frame = Highgui.imread("/Users/narsir/Documents/Projects/Poolplayer/images/table_" + indx + ".png");
+//		int indx = (int) (Math.random()*14 + 1);
+//		Mat frame = Highgui.imread("/Users/narsir/Documents/Projects/Poolplayer/images/table_" + indx + ".png");
+		
+		FRAME_INDEX = (++FRAME_INDEX % 350);
+		int indx = FRAME_INDEX + 100;
+		Mat frame = Highgui.imread("/Users/narsir/Documents/Projects/Poolplayer/images/cuestick/stick0" + indx + ".png");
 
 		Mat clone = frame.clone();
 		clone.convertTo(clone, CvType.CV_16UC3);

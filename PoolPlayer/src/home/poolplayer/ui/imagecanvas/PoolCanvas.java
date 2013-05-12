@@ -7,6 +7,7 @@ import home.poolplayer.model.CueStick;
 import home.poolplayer.model.PoolBall;
 import home.poolplayer.model.PoolCircle;
 import home.poolplayer.model.PoolTable;
+import home.poolplayer.model.Robot;
 import home.poolplayer.model.Shot;
 import home.poolplayer.ui.actions.UIMessages;
 import home.poolplayer.ui.controller.UIController;
@@ -133,6 +134,16 @@ public class PoolCanvas extends Canvas implements PropertyChangeListener,
 				}
 			});
 			break;
+		
+		case ROBOT_DETECTED:
+			Display.getDefault().asyncExec(new Runnable() {
+
+				@Override
+				public void run() {
+					redraw();
+				}
+			});
+			break;
 			
 		default:
 			break;
@@ -166,6 +177,26 @@ public class PoolCanvas extends Canvas implements PropertyChangeListener,
 		drawTable(gc);
 		drawCueStick(gc);
 		drawShot(gc);
+		drawRobot(gc);
+	}
+
+	private void drawRobot(GC gc) {
+		Robot bot = Controller.getInstance().getRobot();
+		if (bot.getCenter() == null)
+			return;
+		
+		gc.setForeground(CUESTICK_COLOR);
+		gc.setLineStyle(SWT.LINE_SOLID);
+		gc.setAlpha(255);
+		
+		int x = (int) (bot.getCenter().x * arX - 5);
+		int y = (int) (bot.getCenter().y * arY - 10);
+
+		gc.drawOval(x, y, 10, 20);
+		
+		x = (int) (bot.getCenter().x * arX - 10);
+		y = (int) (bot.getCenter().y * arY - 5);
+		gc.drawOval(x, y, 20, 10);
 	}
 
 	private void drawCueStick(GC gc) {

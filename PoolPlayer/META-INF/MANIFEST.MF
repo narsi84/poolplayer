@@ -5,10 +5,22 @@ Bundle-SymbolicName: PoolPlayer; singleton:=true
 Bundle-Version: 1.0.0.0
 Bundle-Activator: poolplayer.Activator
 Require-Bundle: org.eclipse.ui,
- org.eclipse.core.runtime
+ org.eclipse.core.runtime,
+ org.eclipse.ui.ide.application;bundle-version="1.0.400",
+ org.eclipse.core.net;bundle-version="1.2.200"
 Bundle-ActivationPolicy: lazy
-Bundle-RequiredExecutionEnvironment: JavaSE-1.7
+Bundle-RequiredExecutionEnvironment: JavaSE-1.6
 Bundle-ClassPath: bin/,
- lib/opencv-245.jar
-Bundle-NativeCode: lib/libopencv_java245.dylib; lib/cv2.so; osname=macosx; processor=x86_64
-
+ lib/opencv-245.jar,
+ lib/3rdparty/bcel.jar,
+ lib/3rdparty/bluecove-gpl.jar,
+ lib/3rdparty/bluecove.jar,
+ lib/3rdparty/commons-cli.jar,
+ lib/3rdparty/jcommon.jar,
+ lib/3rdparty/jfreechart.jar,
+ lib/3rdparty/stax-api-1.0.1.jar,
+ lib/charting.jar,
+ lib/jtools.jar,
+ lib/pccomm.jar,
+ lib/pctools.jar
+Bundle-NativeCode: lib/libopencv_java245.dylib; lib/cv2.so; osname=macosx; processor=x86

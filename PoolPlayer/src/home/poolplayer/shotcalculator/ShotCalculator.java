@@ -30,7 +30,7 @@ public class ShotCalculator {
 		List<Shot> possibleShots = new ArrayList<Shot>();
 
 		List<PoolBall> cueBalls = findBallsOfType(BallType.CUE);
-		if (cueBalls == null || cueBalls.get(0) == null) {
+		if (cueBalls == null || cueBalls.isEmpty()) {
 			System.out.println("No cue balls detected");
 			return null;
 		}
