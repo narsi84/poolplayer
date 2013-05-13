@@ -32,8 +32,8 @@ public class PathPlanner {
 	}
 
 	enum Direction {
-		N(0, -1, 1), S(0, 1, 1), E(1, 0, 1), W(-1, 0, 1), O(0, 0, 1);
-
+		//N(0, -1, 1), S(0, 1, 1), E(1, 0, 1), W(-1, 0, 1), O(0, 0, 1);
+		N(-1, 0, 1), S(1, 0, 1), E(0, 1, 1), W(0, -1, 1), O(0, 0, 1);
 		int x, y, cost;
 
 		private Direction(int x_, int y_, int cost_) {
@@ -46,16 +46,20 @@ public class PathPlanner {
 	public static List<Move> getPath(int[][] grid, Point origin, Point goal) {
 		List<Move> moves = new ArrayList<Move>();
 
-		int width = grid.length;
-		int height = grid[0].length;
+		//width is no. of columns
+		int width = grid[0].length;
+		//height is no. of rows
+		int height = grid.length;
+		
+		System.out.println("Grid height " + height + " width " + width);
 
-		int[][] visited = new int[width][height];
-		Direction[][] policy = new Direction[width][height];
-		Direction[][] action = new Direction[width][height];
+		int[][] visited = new int[height][width];
+		Direction[][] policy = new Direction[height][width];
+		Direction[][] action = new Direction[height][width];
 		List<Direction> path = new ArrayList<PathPlanner.Direction>();
 
-		for (int i = 0; i < width; i++) {
-			for (int j = 0; j < height; j++) {
+		for (int i = 0; i < height; i++) {
+			for (int j = 0; j < width; j++) {
 				System.out.println("x:" + i + " y:" + j + " " + grid[i][j]);
 				visited[i][j] = 0;
 				action[i][j] = Direction.O;
@@ -97,10 +101,10 @@ public class PathPlanner {
 				int y2 = minTuple.y + dir.y;
 				int g2 = minTuple.g + dir.cost;
 
-				if (!(x2 >= 0 && y2 >= 0 && x2 < width && y2 < height))
+				if (!(x2 >= 0 && y2 >= 0 && x2 < height && y2 < width))
 					continue;
 
-				if (visited[x2][y2] == 1 || grid[x2][y2] == 1)
+				if (visited[x2][y2] == 1 || grid[x2][y2] != 0)
 					continue;
 
 				Tuple newTuple = new Tuple(x2, y2, g2);
@@ -108,23 +112,55 @@ public class PathPlanner {
 
 				visited[x2][y2] = 1;
 				action[x2][y2] = dir;
-				System.out.println("Action: " + y2 + ", " + x2 + ", " + g2 + ", " +dir.name());
+				//System.out.println("Action: " + x2 + ", " + y2 + ", " + g2 + ", " +dir.name());
+				//System.out.println("Grid value at x2,y2= " + grid[x2][y2]);
 			}
 		}
 
-		if (!found)
+		if (!found){
+			System.out.println("Goal unreachable");
 			return moves;
+		}
 		// Calculating policy
+		System.out.println("policy is...");
 		int xg = (int) goal.x, yg = (int) goal.y;
-		while (xg != x && yg != y) {
+
+		
+		while (xg!=x || yg != y) {
 			int x2 = xg - action[xg][yg].x;
 			int y2 = yg - action[xg][yg].y;
-
+			System.out.println(xg + "," + yg);
+			System.out.println(action[xg][yg]);
 			path.add(action[xg][yg]);
 			xg = x2;
 			yg = y2;
 		}
-
+		
+		//pseudocode for the path array
+		/*
+		 * int ctr;
+		 * prev_dir = ''
+		 * 
+		 * for current_dir in path:
+		 * 
+		 *   if( current_dir != prev_dir):
+		 *      //store the prev. dir and count, if valid
+		 *      if( prev_dir != '' ):
+		 *         move = [ prev_dir, count];
+		 *      //reset the counter, and prev_dir 
+		 *      ctr = 1;
+		 *      prev_dir = current_dir
+		 *      
+		 *   if( current_dir == prev_dir):
+		 *       ctr++;
+		 *       prev_dir = current_dir
+		 *      
+		 *      
+		 * NOTE: move should be reversed before returning
+		 */
+		
+		
+/*
 		Direction previous = path.get(path.size() - 1);
 		int ctr = 1;
 		for (int i = path.size() - 2; i >= 0; i--) {
@@ -160,22 +196,23 @@ public class PathPlanner {
 			}
 			previous = current;
 		}
-
+*/
 		return moves;
 	}
 	
 	public static void main(String[] args) {
 		int[][] grid = new int[][] {
+				{0, 0, 0, 1, 0, 0},
+				{0, 0, 1, 1, 0, 0},
 				{0, 0, 0, 0, 0, 0},
 				{0, 0, 0, 1, 0, 0},
-				{0, 1, 1, 1, 0, 0},
-				{0, 0, 0, 1, 0, 0},
-				{0, 0, 0, 0, 0, 0}				
+				{0, 0, 0, 1, 0, 0}				
 		};
 		
-		Point origin = new Point(0, 0);
-		Point goal = new Point(2, 0);
-		
+
+		Point origin = new Point(4, 1);
+		Point goal = new Point(4, 4);
+				
 		List<Move> moves = getPath(grid, origin, goal);
 		for(Move m : moves){
 			System.out.println(m.dist + " : " + m.direction);
