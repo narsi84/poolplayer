@@ -10,7 +10,7 @@ import org.opencv.highgui.VideoCapture;
 public class ImageCapture {
 
 	private static ImageCapture instance;
-	private static int BUFFER_SIZE = 10;
+	private static int BUFFER_SIZE = 50;
 	
 	private static int FRAME_INDEX;
 

@@ -60,6 +60,13 @@ public class Controller extends Thread {
 
 	@Override
 	public void run() {
+		
+		super.run();
+	}
+	
+	
+//	@Override
+	public void run2() {
 		while (gameon) {
 
 			try {

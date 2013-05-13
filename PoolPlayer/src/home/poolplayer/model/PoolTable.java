@@ -16,6 +16,7 @@ public class PoolTable {
 	private int pocketRadius;
 
 	private double friction;
+	private double clearance; 
 
 	public PoolTable() {
 		pockets = new ArrayList<PoolCircle>();
@@ -94,4 +95,12 @@ public class PoolTable {
 	public void setPocketRadius(int pocketRadius) {
 		this.pocketRadius = pocketRadius;
 	}
+	
+	public double getClearance() {
+		return clearance;
+	}
+	
+	public void setClearance(double clearance) {
+		this.clearance = clearance;
+	}	
 }

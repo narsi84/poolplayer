@@ -22,4 +22,6 @@ public enum SettingNames {
 	DEVICE_ID,
 	
 	SOLIDS,
+	
+	CLEARENCE,
 }

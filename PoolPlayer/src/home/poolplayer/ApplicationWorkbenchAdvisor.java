@@ -23,6 +23,8 @@ public class ApplicationWorkbenchAdvisor extends WorkbenchAdvisor {
 	@Override
 	public boolean preShutdown() {
 		Controller.getInstance().setGameon(false);
+		Controller.getInstance().getRobot().exit();
+		
 		//Wait for messages to get delivered
 		try {
 			Thread.sleep(2000);

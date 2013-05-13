@@ -117,5 +117,8 @@ public class SettingsReader extends ConfigFileReader {
 
 		val = props.getProperty(SettingNames.POCKET_RADIUS.name());
 		table.setPocketRadius(Integer.parseInt(val));		
+
+		val = props.getProperty(SettingNames.CLEARENCE.name());
+		table.setClearance(Double.parseDouble(val));
 	}
 }
