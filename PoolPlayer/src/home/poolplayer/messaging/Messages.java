@@ -8,6 +8,7 @@ public class Messages {
 		CUESTICK_DETECTED,
 		SHOT_FOUND,
 		ROBOT_DETECTED,
+		PATH_FOUND,
 	}
 	
 	public MessageNames name;

@@ -1,6 +1,12 @@
 package home.poolplayer.model;
 
+import java.util.List;
+
 import home.poolplayer.controller.Controller;
+import home.poolplayer.messaging.Messenger;
+import home.poolplayer.messaging.Messages.MessageNames;
+import home.poolplayer.robot.Move;
+import home.poolplayer.robot.PathPlanner;
 import home.poolplayer.robot.RemotePilotControl;
 
 import org.opencv.core.Mat;
@@ -89,7 +95,15 @@ public class Robot {
 		Point goal = getGoal(shot);
 
 		// Get path from path planner
+		List<Move> path = PathPlanner.getPath(gridMap, center, goal);
+		if (path == null || path.size() == 0){
+			System.out.println("No path found to goal");
+			return false;
+		}
+			
+		Messenger.getInstance().broadcastMessage(MessageNames.PATH_FOUND.name(), path);
 		
+		executeMoves(path);
 		
 		// Orient bot at initial post
 		// Move bot
@@ -100,7 +114,11 @@ public class Robot {
 
 		return false;
 	}
-
+	
+	private void executeMoves(List<Move> moves){
+		
+	}
+	
 	// Find all sides where the above line intersects the bounding box. This
 	// is where the bot can be. Of all the above points, find the one where
 	// the dist from bot-cue < bot-ghost
