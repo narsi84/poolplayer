@@ -23,5 +23,5 @@ public enum SettingNames {
 	
 	SOLIDS,
 	
-	CLEARENCE,
+	CLEARANCE,
 }

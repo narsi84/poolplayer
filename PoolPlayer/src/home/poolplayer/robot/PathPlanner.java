@@ -9,11 +9,11 @@ import org.opencv.core.Point;
 
 public class PathPlanner {
 	static class Tuple {
-		int x, y, g;
+		int r, c, g;
 
-		public Tuple(int x_, int y_, int g_) {
-			x = x_;
-			y = y_;
+		public Tuple(int r_, int c_, int g_) {
+			r = r_;
+			c = c_;
 			g = g_;
 		}
 	}
@@ -32,14 +32,14 @@ public class PathPlanner {
 	}
 
 	enum Direction {
-		//N(0, -1, 1), S(0, 1, 1), E(1, 0, 1), W(-1, 0, 1), O(0, 0, 1);
-		N(-1, 0, 1), S(1, 0, 1), E(0, 1, 1), W(0, -1, 1), O(0, 0, 1);
-		int x, y, cost;
+		N(-1, 0, 1, 0), S(1, 0, 1, -180), E(0, 1, 1, 270), W(0, -1, 1, 90), O(0, 0, 0, 0);
+		int r, c, cost, angle;
 
-		private Direction(int x_, int y_, int cost_) {
-			x = x_;
-			y = y_;
+		private Direction(int r_, int c_, int cost_, int angle_) {
+			r = r_;
+			c = c_;
 			cost = cost_;
+			angle = angle_;
 		}
 	}
 
@@ -51,8 +51,6 @@ public class PathPlanner {
 		//height is no. of rows
 		int height = grid.length;
 		
-		System.out.println("Grid height " + height + " width " + width);
-
 		int[][] visited = new int[height][width];
 		Direction[][] policy = new Direction[height][width];
 		Direction[][] action = new Direction[height][width];
@@ -60,7 +58,6 @@ public class PathPlanner {
 
 		for (int i = 0; i < height; i++) {
 			for (int j = 0; j < width; j++) {
-				System.out.println("x:" + i + " y:" + j + " " + grid[i][j]);
 				visited[i][j] = 0;
 				action[i][j] = Direction.O;
 				policy[i][j] = Direction.O;
@@ -70,12 +67,12 @@ public class PathPlanner {
 		List<Tuple> opened = new ArrayList<PathPlanner.Tuple>();
 		TupleComparator comparator = new TupleComparator();
 
-		int x = (int) origin.x, y = (int) origin.y;
+		int r = (int) origin.x, c = (int) origin.y;
 		int g = 0;
 
-		visited[x][y] = 1;
+		visited[r][c] = 1;
 
-		opened.add(new Tuple(x, y, g));
+		opened.add(new Tuple(r, c, g));
 
 		boolean found = false, resign = false;
 
@@ -88,7 +85,7 @@ public class PathPlanner {
 			Collections.sort(opened, comparator);
 			Tuple minTuple = opened.remove(0);		
 
-			if (minTuple.x == goal.x && minTuple.y == goal.y) {
+			if (minTuple.r == goal.x && minTuple.c == goal.y) {
 				found = true;
 				break;
 			}
@@ -97,23 +94,21 @@ public class PathPlanner {
 				if (dir == Direction.O)
 					continue;
 				
-				int x2 = minTuple.x + dir.x;
-				int y2 = minTuple.y + dir.y;
+				int r2 = minTuple.r + dir.r;
+				int c2 = minTuple.c + dir.c;
 				int g2 = minTuple.g + dir.cost;
 
-				if (!(x2 >= 0 && y2 >= 0 && x2 < height && y2 < width))
+				if (!(r2 >= 0 && c2 >= 0 && r2 < height && c2 < width))
 					continue;
 
-				if (visited[x2][y2] == 1 || grid[x2][y2] != 0)
+				if (visited[r2][c2] == 1 || grid[r2][c2] != 0)
 					continue;
 
-				Tuple newTuple = new Tuple(x2, y2, g2);
+				Tuple newTuple = new Tuple(r2, c2, g2);
 				opened.add(newTuple);
 
-				visited[x2][y2] = 1;
-				action[x2][y2] = dir;
-				//System.out.println("Action: " + x2 + ", " + y2 + ", " + g2 + ", " +dir.name());
-				//System.out.println("Grid value at x2,y2= " + grid[x2][y2]);
+				visited[r2][c2] = 1;
+				action[r2][c2] = dir;
 			}
 		}
 
@@ -122,100 +117,67 @@ public class PathPlanner {
 			return moves;
 		}
 		// Calculating policy
-		System.out.println("policy is...");
-		int xg = (int) goal.x, yg = (int) goal.y;
+		int rg = (int) goal.x, cg = (int) goal.y;
 
 		
-		while (xg!=x || yg != y) {
-			int x2 = xg - action[xg][yg].x;
-			int y2 = yg - action[xg][yg].y;
-			System.out.println(xg + "," + yg);
-			System.out.println(action[xg][yg]);
-			path.add(action[xg][yg]);
-			xg = x2;
-			yg = y2;
+		while (rg!=r || cg != c) {
+			int r2 = rg - action[rg][cg].r;
+			int c2 = cg - action[rg][cg].c;
+			path.add(action[rg][cg]);
+			rg = r2;
+			cg = c2;
 		}
 		
-		//pseudocode for the path array
-		/*
-		 * int ctr;
-		 * prev_dir = ''
-		 * 
-		 * for current_dir in path:
-		 * 
-		 *   if( current_dir != prev_dir):
-		 *      //store the prev. dir and count, if valid
-		 *      if( prev_dir != '' ):
-		 *         move = [ prev_dir, count];
-		 *      //reset the counter, and prev_dir 
-		 *      ctr = 1;
-		 *      prev_dir = current_dir
-		 *      
-		 *   if( current_dir == prev_dir):
-		 *       ctr++;
-		 *       prev_dir = current_dir
-		 *      
-		 *      
-		 * NOTE: move should be reversed before returning
-		 */
+		if (path.isEmpty())
+			return moves;
 		
-		
-/*
-		Direction previous = path.get(path.size() - 1);
+	 	Direction previous = path.get(path.size() - 1);	 	
 		int ctr = 1;
+		Move move = new Move();
+		move.direction = previous.angle;
+		move.dist = ctr;
+		moves.add(move);
+			
 		for (int i = path.size() - 2; i >= 0; i--) {
 			Direction current = path.get(i);
 			if (previous != current) {
-				ctr = 1;
-				Move move = new Move();
-				switch (previous) {
-				case N:
-					move.direction = 0;
-					move.dist = ctr;
-					break;
-				case S:
-					move.direction = 180;
-					move.dist = ctr;
-					break;
-				case E:
-					move.direction = 270;
-					move.dist = 0;
-					break;
-				case W:
-					move.direction = 90;
-					move.dist = 0;
-				default:
-					move.direction = 0;
-					move.dist = 0;
-				}
-
-				moves.add(move);
 				
+				ctr = 1;
+				move = new Move();
+				move.direction = current.angle;
+				move.dist = ctr;
+				moves.add(move);
 			} else {
 				ctr++;
+				move.dist = ctr;
 			}
 			previous = current;
 		}
-*/
+		
 		return moves;
 	}
 	
 	public static void main(String[] args) {
-		int[][] grid = new int[][] {
-				{0, 0, 0, 1, 0, 0},
-				{0, 0, 1, 1, 0, 0},
-				{0, 0, 0, 0, 0, 0},
-				{0, 0, 0, 1, 0, 0},
-				{0, 0, 0, 1, 0, 0}				
-		};
-		
+		int[][] grid = new int[600][800];
+		for(int c=0; c<grid.length; c++){
+			for(int r=0; r<grid[0].length; r++){
+				grid[c][r] = 0;
+			}
+		}
 
-		Point origin = new Point(4, 1);
-		Point goal = new Point(4, 4);
-				
+		// Mask out center 400x600 
+		for(int c=100; c<400; c++){
+			for(int r=100; r<600; r++){
+				grid[c][r] = 1;
+			}
+		}
+
+		Point origin = new Point(550, 200);
+		Point goal = new Point(550, 200);
+
 		List<Move> moves = getPath(grid, origin, goal);
 		for(Move m : moves){
 			System.out.println(m.dist + " : " + m.direction);
-		}		
+		}						
 	}
 }

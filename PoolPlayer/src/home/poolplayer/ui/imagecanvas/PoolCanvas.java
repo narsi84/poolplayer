@@ -189,14 +189,14 @@ public class PoolCanvas extends Canvas implements PropertyChangeListener,
 		gc.setLineStyle(SWT.LINE_SOLID);
 		gc.setAlpha(255);
 		
-		int x = (int) (bot.getCenter().x * arX - 5);
+		int x = (int) (bot.getCenter().x * arX - 2);
 		int y = (int) (bot.getCenter().y * arY - 10);
 
-		gc.drawOval(x, y, 10, 20);
+		gc.drawOval(x, y, 4, 20);
 		
 		x = (int) (bot.getCenter().x * arX - 10);
-		y = (int) (bot.getCenter().y * arY - 5);
-		gc.drawOval(x, y, 20, 10);
+		y = (int) (bot.getCenter().y * arY - 2);
+		gc.drawOval(x, y, 20, 4);
 	}
 
 	private void drawCueStick(GC gc) {

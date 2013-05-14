@@ -78,9 +78,9 @@ public class ImageCapture {
 //		int indx = (int) (Math.random()*14 + 1);
 //		Mat frame = Highgui.imread("/Users/narsir/Documents/Projects/Poolplayer/images/table_" + indx + ".png");
 		
-		FRAME_INDEX = (++FRAME_INDEX % 350);
+		FRAME_INDEX = (++FRAME_INDEX % 290);
 		int indx = FRAME_INDEX + 100;
-		Mat frame = Highgui.imread("/Users/narsir/Documents/Projects/Poolplayer/images/cuestick/stick0" + indx + ".png");
+		Mat frame = Highgui.imread("/Users/narsir/Documents/Projects/Poolplayer/images/test/test" + indx + ".png");
 
 		Mat clone = frame.clone();
 		clone.convertTo(clone, CvType.CV_16UC3);

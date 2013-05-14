@@ -6,11 +6,14 @@ import org.eclipse.swt.graphics.RGB;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.core.Size;
+import org.opencv.imgproc.Imgproc;
 
 public class ConversionUtils {
 
 	public static ImageData convertMat2ImageData(Mat mat) {
 
+		Imgproc.cvtColor(mat, mat, Imgproc.COLOR_BGR2RGB);
+		
 		Size size = mat.size();
 		int numChannels = mat.channels();
 		int depth = 8;

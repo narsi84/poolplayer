@@ -60,13 +60,6 @@ public class Controller extends Thread {
 
 	@Override
 	public void run() {
-		
-		super.run();
-	}
-	
-	
-//	@Override
-	public void run2() {
 		while (gameon) {
 
 			try {
@@ -169,7 +162,7 @@ public class Controller extends Thread {
 			return;
 		}
 		
-		success = robot.initialize();
+//		success = robot.initialize();
 		if (!success) {
 			System.out.println("Failed to initialize robot");
 			return;
