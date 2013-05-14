@@ -9,6 +9,7 @@ import home.poolplayer.model.PoolCircle;
 import home.poolplayer.model.PoolTable;
 import home.poolplayer.model.Robot;
 import home.poolplayer.model.Shot;
+import home.poolplayer.robot.Move;
 import home.poolplayer.ui.actions.UIMessages;
 import home.poolplayer.ui.controller.UIController;
 import home.poolplayer.ui.utils.ConversionUtils;
@@ -49,12 +50,16 @@ public class PoolCanvas extends Canvas implements PropertyChangeListener,
 			0, 0);
 	private static Color SHOT_COLOR = new Color(Display.getDefault(), 255, 255,
 			255);
+	private static Color PATH_COLOR = new Color(Display.getDefault(), 255, 255,
+			0);
 
-	private static Font FONT = new Font(Display.getDefault(),"Arial",14,SWT.BOLD | SWT.ITALIC);
-	
+	private static Font FONT = new Font(Display.getDefault(), "Arial", 14,
+			SWT.BOLD | SWT.ITALIC);
+
 	private List<PoolBall> balls;
 	private Image image;
 	private Shot shot;
+	private List<Move> moves;
 
 	// aspect ratio
 	private float arX, arY;
@@ -95,7 +100,7 @@ public class PoolCanvas extends Canvas implements PropertyChangeListener,
 				}
 			});
 			break;
-			
+
 		case BALLS_DETECTED:
 			Display.getDefault().asyncExec(new Runnable() {
 
@@ -113,41 +118,38 @@ public class PoolCanvas extends Canvas implements PropertyChangeListener,
 				}
 			});
 			break;
-			
-		case CUESTICK_DETECTED:
-			Display.getDefault().asyncExec(new Runnable() {
 
-				@Override
-				public void run() {
-					redraw();
-				}
-			});
+		case CUESTICK_DETECTED:
+			forceRedraw();
 			break;
-			
+
 		case SHOT_FOUND:
 			shot = (Shot) evt.getNewValue();
-			Display.getDefault().asyncExec(new Runnable() {
-
-				@Override
-				public void run() {
-					redraw();
-				}
-			});
+			forceRedraw();
 			break;
-		
+
 		case ROBOT_DETECTED:
-			Display.getDefault().asyncExec(new Runnable() {
-
-				@Override
-				public void run() {
-					redraw();
-				}
-			});
+			forceRedraw();
 			break;
-			
+
+		case PATH_FOUND:
+			moves = (List<Move>) evt.getNewValue();
+			forceRedraw();
+			break;
+
 		default:
 			break;
 		}
+	}
+
+	private void forceRedraw() {
+		Display.getDefault().asyncExec(new Runnable() {
+
+			@Override
+			public void run() {
+				redraw();
+			}
+		});
 	}
 
 	private void setImageData(ImageData idata) {
@@ -178,22 +180,50 @@ public class PoolCanvas extends Canvas implements PropertyChangeListener,
 		drawCueStick(gc);
 		drawShot(gc);
 		drawRobot(gc);
+		drawPath(gc);
+	}
+
+	private void drawPath(GC gc) {
+		if (moves == null || moves.isEmpty())
+			return;
+
+		Robot bot = Controller.getInstance().getRobot();
+		if (bot.getCenter() == null)
+			return;
+
+		int x1 = (int) (bot.getCenter().x * arX);
+		int y1 = (int) (bot.getCenter().y * arY);
+
+		int x2, y2;
+		for (Move move : moves) {
+			// Angle is wrt North
+			x2 = (int) (x1 + move.dist * Math.sin(move.direction) * arX);
+			y2 = (int) (y1 + move.dist * Math.cos(move.direction) * arY);
+
+			gc.setAlpha(100);
+			gc.setForeground(PATH_COLOR);
+			gc.setLineStyle(SWT.LINE_DASHDOT);
+			gc.drawLine(x1, y1, x2, y2);
+
+			x1 = x2;
+			y1 = y2;
+		}
 	}
 
 	private void drawRobot(GC gc) {
 		Robot bot = Controller.getInstance().getRobot();
 		if (bot.getCenter() == null)
 			return;
-		
+
 		gc.setForeground(CUESTICK_COLOR);
 		gc.setLineStyle(SWT.LINE_SOLID);
 		gc.setAlpha(255);
-		
+
 		int x = (int) (bot.getCenter().x * arX - 5);
 		int y = (int) (bot.getCenter().y * arY - 10);
 
 		gc.drawOval(x, y, 10, 20);
-		
+
 		x = (int) (bot.getCenter().x * arX - 10);
 		y = (int) (bot.getCenter().y * arY - 5);
 		gc.drawOval(x, y, 20, 10);
@@ -203,7 +233,7 @@ public class PoolCanvas extends Canvas implements PropertyChangeListener,
 		CueStick stick = Controller.getInstance().getCueStick();
 		if (stick == null)
 			return;
-		
+
 		int x1 = (int) (stick.start.x * arX);
 		int y1 = (int) (stick.start.y * arY);
 		int x2 = (int) (stick.end.x * arX);
@@ -222,21 +252,21 @@ public class PoolCanvas extends Canvas implements PropertyChangeListener,
 		gc.setForeground(SHOT_COLOR);
 		gc.setLineStyle(SWT.LINE_DASH);
 		gc.setAlpha(255);
-		
+
 		double r = shot.ghost.getR();
 		int x = (int) ((shot.ghost.getX() - r) * arX);
 		int y = (int) ((shot.ghost.getY() - r) * arY);
 
-		gc.drawOval(x, y, (int) (r * arX * 2), (int) (r
-				* arY * 2));
+		gc.drawOval(x, y, (int) (r * arX * 2), (int) (r * arY * 2));
 
-		int textPosX = (int)( shot.pocket.getX() * arX);
-		int textPosY = (int)( shot.pocket.getY() * arY);
-		
+		int textPosX = (int) (shot.pocket.getX() * arX);
+		int textPosY = (int) (shot.pocket.getY() * arY);
+
 		gc.setLineStyle(SWT.LINE_SOLID);
 		gc.setForeground(BLACK);
 		gc.setFont(FONT);
-		gc.drawText(Integer.toString((int)(shot.velocity)), textPosX, textPosY, true);
+		gc.drawText(Integer.toString((int) (shot.velocity)), textPosX,
+				textPosY, true);
 	}
 
 	private void drawTable(GC gc) {
@@ -324,10 +354,11 @@ public class PoolCanvas extends Canvas implements PropertyChangeListener,
 	public void mouseMove(MouseEvent evt) {
 		double x = evt.x / arX;
 		double y = evt.y / arY;
-		
+
 		String coords = x + ", " + y;
-		UIController.getInstance().firePropertyChangeEvent(UIMessages.SHOW_COORDS.name(), coords);
-		
+		UIController.getInstance().firePropertyChangeEvent(
+				UIMessages.SHOW_COORDS.name(), coords);
+
 		if (!mouseDown || nearestPocket == null)
 			return;
 
