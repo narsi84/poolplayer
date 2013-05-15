@@ -20,7 +20,6 @@ import java.beans.PropertyChangeListener;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.opencv.core.Mat;
 import org.opencv.core.Point;
@@ -30,7 +29,7 @@ public class Controller extends Thread implements PropertyChangeListener {
 	public static Controller instance;
 	public static String LOGGERNAME = "PoolPlayer";	
 
-	private static long WAIT_TIME = 2000;
+	private static long WAIT_TIME = 1000;
 	
 	private static Logger logger;
 
@@ -137,7 +136,7 @@ public class Controller extends Thread implements PropertyChangeListener {
 				List<Move> path = PathPlanner.getPath(bestShot, img);
 				sendMessageToUIAndWait(MessageNames.PATH_FOUND, path);
 				
-//				robot.makeShot(bestShot, img);
+				robot.makeShot(bestShot, path);
 
 			} catch (Exception e) {
 				e.printStackTrace();
@@ -173,9 +172,11 @@ public class Controller extends Thread implements PropertyChangeListener {
 		return robot;
 	}
 
+	public void setCueStick(CueStick cueStick) {
+		this.cueStick = cueStick;
+	}
+	
 	public void loadSettings(String settingsFile) {
-		Logger.getLogger(LOGGERNAME).setLevel(Level.INFO);
-
 		if (isAlive())
 			interrupt();
 
@@ -189,7 +190,7 @@ public class Controller extends Thread implements PropertyChangeListener {
 			return;
 		}
 
-		// success = robot.initialize();
+		success = robot.initialize();
 		if (!success) {
 			logger.fatal("Failed to initialize robot");
 			return;
