@@ -10,8 +10,8 @@ import org.opencv.highgui.VideoCapture;
 public class ImageCapture {
 
 	private static ImageCapture instance;
-	private static int BUFFER_SIZE = 50;
-	
+	private static int BUFFER_SIZE = 100;
+
 	private static int FRAME_INDEX;
 
 	// ID to tell OpenCV which cam to get images from
@@ -28,8 +28,8 @@ public class ImageCapture {
 			instance = new ImageCapture();
 		return instance;
 	}
-	
-	public boolean initialize(){
+
+	public boolean initialize() {
 		videoCapture = new VideoCapture(deviceId);
 
 		// Wait for sometime. Otherwise the mac cam doesnt get initialized.
@@ -45,64 +45,69 @@ public class ImageCapture {
 		}
 		return true;
 	}
-	
+
 	public Mat getAvgImage() {
 		Mat avgImage = capture();
-		
-		for(int i=1; i<BUFFER_SIZE; i++){
+
+		for (int i = 1; i < BUFFER_SIZE; i++) {
 			Mat frame = capture();
 			Core.add(avgImage, frame, avgImage);
 		}
-		Core.multiply(avgImage, new Scalar(1.0/BUFFER_SIZE, 1.0/BUFFER_SIZE, 1.0/BUFFER_SIZE), avgImage);
-		
+		Core.multiply(avgImage, new Scalar(1.0 / BUFFER_SIZE,
+				1.0 / BUFFER_SIZE, 1.0 / BUFFER_SIZE), avgImage);
+
 		avgImage.convertTo(avgImage, CvType.CV_8UC3);
-		
+
 		return avgImage;
 	}
+
+//	public Mat getAvgImageTest() {
+//		return TestHough.doProc();
+//	}
 
 	public Mat getAvgImageTest() {
 		Mat avgImage = captureTableFrameTest();
-		
-		for(int i=1; i<BUFFER_SIZE; i++){
+
+		for (int i = 1; i < BUFFER_SIZE; i++) {
 			Mat frame = captureTableFrameTest();
 			Core.add(avgImage, frame, avgImage);
 		}
-		Core.multiply(avgImage, new Scalar(1.0/BUFFER_SIZE, 1.0/BUFFER_SIZE, 1.0/BUFFER_SIZE), avgImage);
-		
+		Core.multiply(avgImage, new Scalar(1.0 / BUFFER_SIZE,
+				1.0 / BUFFER_SIZE, 1.0 / BUFFER_SIZE), avgImage);
+
 		avgImage.convertTo(avgImage, CvType.CV_8UC3);
-		
+
 		return avgImage;
 	}
 
-	private Mat captureTableFrameTest(){
-//		int indx = (int) (Math.random()*14 + 1);
-//		Mat frame = Highgui.imread("/Users/narsir/Documents/Projects/Poolplayer/images/table_" + indx + ".png");
-		
-		FRAME_INDEX = (++FRAME_INDEX % 290);
-		int indx = FRAME_INDEX + 100;
-		Mat frame = Highgui.imread("/Users/narsir/Documents/Projects/Poolplayer/images/test/test" + indx + ".png");
+	private Mat captureTableFrameTest() {
+		FRAME_INDEX = (++FRAME_INDEX % 390);
+		int indx = FRAME_INDEX + 1;
+		Mat frame = Highgui
+				.imread("/Users/narsir/Documents/Projects/Poolplayer/images/test/test"
+						+ String.format("%03d", indx) + ".png");
 
 		Mat clone = frame.clone();
 		clone.convertTo(clone, CvType.CV_16UC3);
-		
+
 		return clone;
 	}
-	
-	private Mat capture(){
+
+	private Mat capture() {
 		Mat frame = new Mat();
 		boolean succes = videoCapture.read(frame);
 		if (!succes) {
 			System.out.println("No cam");
 			videoCapture.release();
 			return null;
-		}			
-		
+		}
+
 		Mat clone = frame.clone();
 		clone.convertTo(clone, CvType.CV_16UC3);
-		
-		return clone;		
+
+		return clone;
 	}
-	
+
 	public int getDeviceId() {
 		return deviceId;
 	}

@@ -2,6 +2,7 @@ package home.poolplayer.ui.imagecanvas;
 
 import home.poolplayer.controller.Controller;
 import home.poolplayer.messaging.Messages;
+import home.poolplayer.messaging.Messages.MessageNames;
 import home.poolplayer.messaging.Messenger;
 import home.poolplayer.model.CueStick;
 import home.poolplayer.model.PoolBall;
@@ -16,7 +17,6 @@ import home.poolplayer.ui.utils.ConversionUtils;
 
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
-import java.util.ArrayList;
 import java.util.List;
 
 import org.eclipse.swt.SWT;
@@ -46,11 +46,9 @@ public class PoolCanvas extends Canvas implements PropertyChangeListener,
 	private static Color NONE = new Color(Display.getDefault(), 255, 0, 255);
 	private static Color TABLE_COLOR = new Color(Display.getDefault(), 255,
 			255, 255);
-	private static Color CUESTICK_COLOR = new Color(Display.getDefault(), 255,
-			0, 0);
 	private static Color SHOT_COLOR = new Color(Display.getDefault(), 255, 255,
 			255);
-	private static Color PATH_COLOR = new Color(Display.getDefault(), 255, 255,
+	private static Color ROBOT_COLOR = new Color(Display.getDefault(), 0, 0,
 			0);
 
 	private static Font FONT = new Font(Display.getDefault(), "Arial", 14,
@@ -84,10 +82,6 @@ public class PoolCanvas extends Canvas implements PropertyChangeListener,
 	@SuppressWarnings("unchecked")
 	@Override
 	public void propertyChange(final PropertyChangeEvent evt) {
-		// Reset the shot object. It will get populated when there is a valid
-		// shot. Otherwise we may end up showing the last valid shot
-		shot = null;
-
 		switch (Messages.MessageNames.valueOf(evt.getPropertyName())) {
 		case FRAME_AVAILABLE:
 			Display.getDefault().asyncExec(new Runnable() {
@@ -102,21 +96,8 @@ public class PoolCanvas extends Canvas implements PropertyChangeListener,
 			break;
 
 		case BALLS_DETECTED:
-			Display.getDefault().asyncExec(new Runnable() {
-
-				@Override
-				public void run() {
-					balls = new ArrayList<PoolBall>();
-					List<PoolBall> oldballs = (List<PoolBall>) evt
-							.getNewValue();
-					synchronized (oldballs) {
-						for (int i = 0; i < oldballs.size(); i++) {
-							balls.add(new PoolBall(oldballs.get(i)));
-						}
-					}
-					redraw();
-				}
-			});
+			balls = (List<PoolBall>) evt.getNewValue();
+			forceRedraw();
 			break;
 
 		case CUESTICK_DETECTED:
@@ -137,9 +118,20 @@ public class PoolCanvas extends Canvas implements PropertyChangeListener,
 			forceRedraw();
 			break;
 
+		case CLEARUI:
+			clearUI();
+			break;
 		default:
 			break;
 		}
+	}
+
+	private void clearUI() {
+		shot = null;
+		moves = null;
+		balls = null;
+
+		forceRedraw();
 	}
 
 	private void forceRedraw() {
@@ -165,8 +157,11 @@ public class PoolCanvas extends Canvas implements PropertyChangeListener,
 	}
 
 	private void paint(GC gc) {
-		if (image == null)
+		if (image == null) {
+			Messenger.getInstance().broadcastMessage(
+					MessageNames.UI_DONE.name());
 			return;
+		}
 
 		Rectangle canvasRect = this.getClientArea();
 		arX = (float) canvasRect.width / (float) image.getBounds().width;
@@ -181,6 +176,8 @@ public class PoolCanvas extends Canvas implements PropertyChangeListener,
 		drawShot(gc);
 		drawRobot(gc);
 		drawPath(gc);
+
+		Messenger.getInstance().broadcastMessage(MessageNames.UI_DONE.name());
 	}
 
 	private void drawPath(GC gc) {
@@ -188,7 +185,7 @@ public class PoolCanvas extends Canvas implements PropertyChangeListener,
 			return;
 
 		Robot bot = Controller.getInstance().getRobot();
-		if (bot.getCenter() == null)
+		if (bot == null || bot.getCenter() == null)
 			return;
 
 		int x1 = (int) (bot.getCenter().x * arX);
@@ -197,12 +194,15 @@ public class PoolCanvas extends Canvas implements PropertyChangeListener,
 		int x2, y2;
 		for (Move move : moves) {
 			// Angle is wrt North
-			x2 = (int) (x1 + move.dist * Math.sin(move.direction) * arX);
-			y2 = (int) (y1 + move.dist * Math.cos(move.direction) * arY);
+			x2 = (int) (x1 + move.dist
+					* Math.cos( (move.direction + 90)* Math.PI / 180) * arX);
+			y2 = (int) (y1 - move.dist
+					* Math.sin((move.direction + 90) * Math.PI / 180) * arY);
 
-			gc.setAlpha(100);
-			gc.setForeground(PATH_COLOR);
+			gc.setAlpha(255);
+			gc.setForeground(ROBOT_COLOR);
 			gc.setLineStyle(SWT.LINE_DASHDOT);
+			gc.setLineWidth(2);
 			gc.drawLine(x1, y1, x2, y2);
 
 			x1 = x2;
@@ -212,18 +212,18 @@ public class PoolCanvas extends Canvas implements PropertyChangeListener,
 
 	private void drawRobot(GC gc) {
 		Robot bot = Controller.getInstance().getRobot();
-		if (bot.getCenter() == null)
+		if (bot == null || bot.getCenter() == null)
 			return;
 
-		gc.setForeground(CUESTICK_COLOR);
+		gc.setForeground(ROBOT_COLOR);
 		gc.setLineStyle(SWT.LINE_SOLID);
+		gc.setLineWidth(1);
 		gc.setAlpha(255);
-		
+
 		int x = (int) (bot.getCenter().x * arX - 2);
 		int y = (int) (bot.getCenter().y * arY - 10);
-
 		gc.drawOval(x, y, 4, 20);
-		
+
 		x = (int) (bot.getCenter().x * arX - 10);
 		y = (int) (bot.getCenter().y * arY - 2);
 		gc.drawOval(x, y, 20, 4);
@@ -239,7 +239,7 @@ public class PoolCanvas extends Canvas implements PropertyChangeListener,
 		int x2 = (int) (stick.end.x * arX);
 		int y2 = (int) (stick.end.y * arY);
 
-		gc.setForeground(CUESTICK_COLOR);
+		gc.setForeground(ROBOT_COLOR);
 		gc.setLineWidth(3);
 		gc.setAlpha(255);
 		gc.drawLine(x1, y1, x2, y2);
@@ -375,7 +375,6 @@ public class PoolCanvas extends Canvas implements PropertyChangeListener,
 			if (poc.isPointWithin(x, y))
 				return poc;
 		}
-
 		return null;
 	}
 

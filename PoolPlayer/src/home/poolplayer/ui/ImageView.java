@@ -4,6 +4,8 @@ import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 
 import home.poolplayer.controller.Controller;
+import home.poolplayer.messaging.Messenger;
+import home.poolplayer.messaging.Messages.MessageNames;
 import home.poolplayer.ui.actions.UIMessages;
 import home.poolplayer.ui.controller.UIController;
 import home.poolplayer.ui.imagecanvas.PoolCanvas;
@@ -26,6 +28,7 @@ public class ImageView extends ViewPart implements SelectionListener,
 
 	private Text configFileT;
 	private Button loadB;
+	private Button pauseB;
 
 	private Composite parent;
 	private Composite configC;
@@ -52,6 +55,10 @@ public class ImageView extends ViewPart implements SelectionListener,
 		loadB = new Button(configC, SWT.PUSH);
 		loadB.setText("Load/Start");
 
+		pauseB = new Button(configC, SWT.TOGGLE);
+		pauseB.setText("Pause");
+		pauseB.setSelection(false);
+		
 		imageCanvas = new PoolCanvas(parent);
 
 		pixelCoordsT = new Text(parent, SWT.BORDER);
@@ -72,6 +79,11 @@ public class ImageView extends ViewPart implements SelectionListener,
 		lbd.heightHint = 50;
 		loadB.setLayoutData(lbd);
 
+		GridData pbd = new GridData(SWT.CENTER, SWT.CENTER, false, false);
+		pbd.widthHint = 100;
+		pbd.heightHint = 50;
+		pauseB.setLayoutData(pbd);
+
 		GridLayout gl = new GridLayout(1, false);
 		parent.setLayout(gl);
 
@@ -84,6 +96,7 @@ public class ImageView extends ViewPart implements SelectionListener,
 
 	private void addActionListeners() {
 		loadB.addSelectionListener(this);
+		pauseB.addSelectionListener(this);
 		UIController.getInstance().addListener(this);
 	}
 
@@ -113,6 +126,10 @@ public class ImageView extends ViewPart implements SelectionListener,
 				return;
 			}
 			Controller.getInstance().loadSettings(configFileT.getText());
+		}
+		
+		if (e.getSource() == pauseB){
+			Messenger.getInstance().broadcastMessage(MessageNames.PAUSE.name(), pauseB.getSelection());
 		}
 
 	}

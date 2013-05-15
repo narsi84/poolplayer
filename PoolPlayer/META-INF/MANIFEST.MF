@@ -22,5 +22,6 @@ Bundle-ClassPath: bin/,
  lib/charting.jar,
  lib/jtools.jar,
  lib/pccomm.jar,
- lib/pctools.jar
+ lib/pctools.jar,
+ lib/log4j-1.2.17.jar
 Bundle-NativeCode: lib/libopencv_java245.dylib; lib/cv2.so; osname=macosx; processor=x86

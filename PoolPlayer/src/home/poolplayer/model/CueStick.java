@@ -45,4 +45,9 @@ public class CueStick {
 		return Math.sqrt((p1.y - p0.y) * (p1.y - p0.y) + (p1.x - p0.x)
 				* (p1.x - p0.x));
 	}
+	
+	@Override
+	public String toString() {
+		return "(" + start.x + ", " + start.y + ") - (" + end.x + ", " + end.y + ")";  
+	}
 }

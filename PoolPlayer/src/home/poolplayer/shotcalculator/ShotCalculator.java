@@ -3,6 +3,8 @@ package home.poolplayer.shotcalculator;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.log4j.Logger;
+
 import home.poolplayer.controller.Controller;
 import home.poolplayer.model.BallType;
 import home.poolplayer.model.PoolBall;
@@ -10,11 +12,16 @@ import home.poolplayer.model.PoolCircle;
 import home.poolplayer.model.Shot;
 
 public class ShotCalculator {
-
+	
 	public static Shot findBestShot(){
+		Logger logger = Logger.getLogger(Controller.LOGGERNAME);
+		logger.info("****** Finding shot ******");
+		
 		List<Shot> possibleShots = findPossibleShots();
-		if (possibleShots == null || possibleShots.isEmpty())
+		if (possibleShots == null || possibleShots.isEmpty()){
+			logger.info("****** No shots possible ******");
 			return null;			
+		}
 
 		Shot bestShot = possibleShots.get(0);
 		for(int i=1; i<possibleShots.size(); i++){
@@ -22,6 +29,9 @@ public class ShotCalculator {
 			if (shot.velocity < bestShot.velocity)
 				bestShot = shot;
 		}
+		
+		logger.info("****** Found shot ******");
+		logger.debug(bestShot.toString());
 		
 		return bestShot;
 	}

@@ -36,4 +36,9 @@ public class PoolBall extends PoolCircle {
 	public void setType(BallType type) {
 		this.type = type;
 	}
+	
+	@Override
+	public String toString() {
+		return super.toString() + " Type: " + type;
+	}
 }

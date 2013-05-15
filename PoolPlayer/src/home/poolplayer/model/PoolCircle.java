@@ -44,5 +44,8 @@ public class PoolCircle {
 		return false;
 	}
 	
-	
+	@Override
+	public String toString() {
+		return "x, y: " + x + ", " + y + " r: " + r;
+	}
 }

@@ -9,6 +9,9 @@ public class Messages {
 		SHOT_FOUND,
 		ROBOT_DETECTED,
 		PATH_FOUND,
+		UI_DONE,
+		CLEARUI,
+		PAUSE,
 	}
 	
 	public MessageNames name;

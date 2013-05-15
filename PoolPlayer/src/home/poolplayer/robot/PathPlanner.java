@@ -1,10 +1,16 @@
 package home.poolplayer.robot;
 
+import home.poolplayer.controller.Controller;
+import home.poolplayer.model.PoolTable;
+import home.poolplayer.model.Shot;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
+import org.apache.log4j.Logger;
+import org.opencv.core.Mat;
 import org.opencv.core.Point;
 
 public class PathPlanner {
@@ -32,7 +38,7 @@ public class PathPlanner {
 	}
 
 	enum Direction {
-		N(-1, 0, 1, 0), S(1, 0, 1, -180), E(0, 1, 1, 270), W(0, -1, 1, 90), O(0, 0, 0, 0);
+		N(-1, 0, 1, 0), S(1, 0, 1, 180), E(0, 1, 1, 270), W(0, -1, 1, 90), O(0, 0, 0, 0);
 		int r, c, cost, angle;
 
 		private Direction(int r_, int c_, int cost_, int angle_) {
@@ -43,7 +49,54 @@ public class PathPlanner {
 		}
 	}
 
-	public static List<Move> getPath(int[][] grid, Point origin, Point goal) {
+	private static Logger logger = Logger.getLogger(Controller.LOGGERNAME);
+	
+	private static int[][] getGridMap(Mat src) {
+		int[][] gridMap = new int[src.height()][src.width()];
+
+		PoolTable table = Controller.getInstance().getTable();
+		int t_w = table.getWidth();
+		int t_h = table.getHeight();
+		int t_x = table.getX();
+		int t_y = table.getY();
+		int clearance = (int) table.getClearance();
+
+		for (int i = t_y - clearance; i < t_y + t_h + clearance; i++)
+			for (int j = t_x - clearance; j < t_x + t_w + clearance; j++)
+				gridMap[i][j] = 1;
+
+		return gridMap;
+	}
+
+	public static List<Move> getPath(Shot shot, Mat src){			
+		logger.info("****** Finding path *******");
+
+		// Find bounding box of table (depends on size of bot)
+		int[][] gridMap = getGridMap(src);
+
+		// Get goal position
+		Point goal = getGoal(shot);		
+		
+		Point origin = Controller.getInstance().getRobot().getCenter();
+
+		logger.debug("Origin: " + origin.toString() + " Goal: " + goal.toString());
+
+		// Transpose coordinates to feed to PathPlanner
+		Point center_t = new Point((int)origin.y, (int)origin.x);
+		Point goal_t = new Point((int)goal.y, (int)goal.x);
+
+		
+		// Get path from path planner
+		List<Move> path = getShortestPath(gridMap, center_t, goal_t);
+		if (path == null || path.size() == 0){
+			logger.info("******* No path found to goal ********");
+			return null;
+		}
+		
+		return path;
+	}
+
+	private static List<Move> getShortestPath(int[][] grid, Point origin, Point goal) {
 		List<Move> moves = new ArrayList<Move>();
 
 		//width is no. of columns
@@ -113,9 +166,9 @@ public class PathPlanner {
 		}
 
 		if (!found){
-			System.out.println("Goal unreachable");
 			return moves;
 		}
+		
 		// Calculating policy
 		int rg = (int) goal.x, cg = (int) goal.y;
 
@@ -128,8 +181,10 @@ public class PathPlanner {
 			cg = c2;
 		}
 		
-		if (path.isEmpty())
+		if (path.isEmpty()){
+			logger.info("****** No path found *******");
 			return moves;
+		}
 		
 	 	Direction previous = path.get(path.size() - 1);	 	
 		int ctr = 1;
@@ -153,29 +208,124 @@ public class PathPlanner {
 			}
 			previous = current;
 		}
+
+		logger.info("****** Found path *******");
+		for(Move m : moves){
+			logger.debug(m.dist + " : " + m.direction);
+		}
 		
 		return moves;
 	}
 	
+	// Find all sides where the above line intersects the bounding box. This
+	// is where the bot can be. Of all the above points, find the one where
+	// the dist from bot-cue < bot-ghost
+	private static Point getGoal(Shot shot) {
+		double y1 = shot.cueBall.getY(), x1 = shot.cueBall.getX();
+		double y2 = shot.ghost.getY(), x2 = shot.ghost.getX();
+
+		double m, c;
+		if (x2 == x1) {
+			c = x2;
+			m = Double.POSITIVE_INFINITY;
+		} else {
+			m = (y2 - y1) / (x2 - x1);
+			c = (y1 * x2 - y2 * x1) / (x2 - x1);
+		}
+		
+		PoolTable table = Controller.getInstance().getTable();
+		int t_w = table.getWidth();
+		int t_h = table.getHeight();
+		int t_x = table.getX();
+		int t_y = table.getY();
+		int clearance = (int) table.getClearance();
+
+		double cp;
+		
+		double x, y, d_cue, d_ghost;
+		double minDist = Double.MAX_VALUE;
+
+		Point goal = new Point();
+		
+		// Left wall
+		cp = t_x - clearance;
+		x = cp;
+		y = m*x + c;
+		d_cue = getDist(x, y, shot.cueBall.getX(), shot.cueBall.getY());
+		d_ghost = getDist(x, y, shot.ghost.getX(), shot.ghost.getY());
+		if (d_cue < d_ghost && d_cue < minDist) {
+			minDist = d_cue;
+			goal.x = x;
+			goal.y = y;
+		}
+		
+		// Right wall
+		cp = t_x + t_w + clearance;
+		x = cp;
+		y = m*x + c;
+		d_cue = getDist(x, y, shot.cueBall.getX(), shot.cueBall.getY());
+		d_ghost = getDist(x, y, shot.ghost.getX(), shot.ghost.getY());
+		if (d_cue < d_ghost && d_cue < minDist) {
+			minDist = d_cue;
+			goal.x = x;
+			goal.y = y;
+		}
+		
+		// Top wall
+		cp = t_y - clearance;
+		y = cp;
+		if (m == 0)
+			x = Double.POSITIVE_INFINITY;
+		else
+			x = (y - c)/m;
+		d_cue = getDist(x, y, shot.cueBall.getX(), shot.cueBall.getY());
+		d_ghost = getDist(x, y, shot.ghost.getX(), shot.ghost.getY());
+		if (d_cue < d_ghost && d_cue < minDist) {
+			minDist = d_cue;
+			goal.x = x;
+			goal.y = y;
+		}		
+		// Bottom wall
+		cp = t_y + t_h + clearance;
+		y = cp;
+		if (m == 0)
+			x = Double.POSITIVE_INFINITY;
+		else
+			x = (y - c)/m;
+		d_cue = getDist(x, y, shot.cueBall.getX(), shot.cueBall.getY());
+		d_ghost = getDist(x, y, shot.ghost.getX(), shot.ghost.getY());
+		if (d_cue < d_ghost && d_cue < minDist) {
+			minDist = d_cue;
+			goal.x = x;
+			goal.y = y;
+		}
+		
+		return goal;
+	}
+
+	private static double getDist(double x1, double y1, double x2, double y2) {
+		return Math.sqrt((y2 - y1) * (y2 - y1) + (x2 - x1) * (x2 - x1));
+	}
+	
 	public static void main(String[] args) {
-		int[][] grid = new int[600][800];
-		for(int c=0; c<grid.length; c++){
-			for(int r=0; r<grid[0].length; r++){
-				grid[c][r] = 0;
+		int[][] grid = new int[1280][720];
+		for(int r=0; r<grid.length; r++){
+			for(int c=0; c<grid[0].length; c++){
+				grid[r][c] = 0;
 			}
 		}
 
 		// Mask out center 400x600 
-		for(int c=100; c<400; c++){
-			for(int r=100; r<600; r++){
-				grid[c][r] = 1;
+		for(int r=575-20; r<850+20; r++){
+			for(int c=160-20; c<620+20; c++){
+				grid[r][c] = 1;
 			}
 		}
 
-		Point origin = new Point(550, 200);
-		Point goal = new Point(550, 200);
+		Point origin = new Point(413, 357);
+		Point goal = new Point(857, 640);
 
-		List<Move> moves = getPath(grid, origin, goal);
+		List<Move> moves = getShortestPath(grid, origin, goal);
 		for(Move m : moves){
 			System.out.println(m.dist + " : " + m.direction);
 		}						

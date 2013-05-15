@@ -8,9 +8,10 @@ import home.poolplayer.model.PoolCircle;
 import home.poolplayer.model.PoolTable;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
 import org.opencv.core.Core;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
@@ -18,12 +19,14 @@ import org.opencv.core.Point;
 import org.opencv.core.Rect;
 import org.opencv.core.Scalar;
 import org.opencv.core.Size;
+import org.opencv.highgui.Highgui;
 import org.opencv.imgproc.Imgproc;
 
 public class ImageProcessor {
 
 	private static int NUM_CHANNELS = 3;
 	private static ImageProcessor instance;
+	private static Logger logger;
 
 	private List<PoolBall> balls;
 	private AnalysisParams params;
@@ -39,9 +42,13 @@ public class ImageProcessor {
 	private ImageProcessor() {
 		balls = new ArrayList<PoolBall>();
 		params = new AnalysisParams();
+
+		logger = Logger.getLogger(Controller.LOGGERNAME);
 	}
 
 	public List<PoolBall> findBalls(Mat img) {
+		logger.info("****** Finding balls *******");
+
 		PoolTable t = Controller.getInstance().getTable();
 		Rect roi = new Rect(t.getX(), t.getY(), t.getWidth(), t.getHeight());
 		tableImg = img.submat(roi);
@@ -62,6 +69,15 @@ public class ImageProcessor {
 
 		findAvgBallSize();
 
+		if (balls.isEmpty())
+			logger.info("****** No balls found *******");
+		else
+			logger.info("****** Balls found *******");
+		
+		for (PoolBall ball : balls) {
+			logger.debug(ball.toString());
+		}
+
 		return balls;
 	}
 
@@ -74,16 +90,27 @@ public class ImageProcessor {
 	 * @return
 	 */
 	public CueStick findCueStick(Mat img) {
+		logger.info("****** Finding cue stick *******");
+
+		if (logger.getLevel() == Level.DEBUG) {
+			Mat dmp = new Mat();
+			Imgproc.cvtColor(img, dmp, Imgproc.COLOR_BGR2RGB);
+			Highgui.imwrite(
+					"/Users/narsir/Documents/Projects/Poolplayer/images/rgb.png",
+					dmp);
+		}
+		
+		
 		Mat hsv = new Mat();
 		Imgproc.cvtColor(img, hsv, Imgproc.COLOR_BGR2HSV_FULL);
 
-		// In HSV, red pixels are 225-30
+		// In HSV, red pixels are 225-15
 		Mat redPixels1 = new Mat();
-		Core.inRange(hsv, new Scalar(0, 0, 150), new Scalar(30, 255, 255),
+		Core.inRange(hsv, new Scalar(150, 0, 0), new Scalar(255, 255, 15),
 				redPixels1);
 
 		Mat redPixels2 = new Mat();
-		Core.inRange(hsv, new Scalar(225, 0, 150), new Scalar(255, 255, 255),
+		Core.inRange(hsv, new Scalar(150, 0, 225), new Scalar(255, 255, 255),
 				redPixels2);
 
 		Mat stickPixels = new Mat();
@@ -94,12 +121,20 @@ public class ImageProcessor {
 		Imgproc.morphologyEx(stickPixels, stickPixels, Imgproc.MORPH_CLOSE,
 				kernel);
 
+		if (logger.getLevel() == Level.DEBUG) {
+			Highgui.imwrite(
+					"/Users/narsir/Documents/Projects/Poolplayer/images/stickpixels.png",
+					stickPixels);
+		}
+		
 		Mat lines = new Mat();
 		Imgproc.HoughLinesP(stickPixels, lines, 1, Math.PI / 180,
 				(int) params.getBlackLevel(), 100, 40);
 
-		if (lines.empty())
+		if (lines.empty()){
+			logger.info("****** No cue stick found *******");
 			return null;
+		}
 
 		double[] line = lines.get(0, 0);
 
@@ -124,10 +159,17 @@ public class ImageProcessor {
 			}
 		}
 
-		return new CueStick(start, end);
+		CueStick stick = new CueStick(start, end);
+		
+		logger.info("****** Found cue stick *******");
+		logger.debug(stick.toString());
+		
+		return stick;
 	}
 
 	public Point finRobot(Mat src) {
+		logger.info("****** Finding robot *******");
+		
 		// Mask out the table
 		PoolTable t = Controller.getInstance().getTable();
 		Mat mask = new Mat(src.size(), CvType.CV_8UC1, new Scalar(1));
@@ -136,17 +178,17 @@ public class ImageProcessor {
 
 		Mat img = new Mat();
 		src.copyTo(img, mask);
-		
+
 		Mat hsv = new Mat();
 		Imgproc.cvtColor(img, hsv, Imgproc.COLOR_BGR2HSV_FULL);
 
-		// In HSV, red pixels are 225-30
+		// In HSV, red pixels are 225-15
 		Mat redPixels1 = new Mat();
-		Core.inRange(hsv, new Scalar(0, 0, 150), new Scalar(30, 255, 255),
+		Core.inRange(hsv, new Scalar(150, 0, 0), new Scalar(255, 255, 15),
 				redPixels1);
 
 		Mat redPixels2 = new Mat();
-		Core.inRange(hsv, new Scalar(225, 0, 150), new Scalar(255, 255, 255),
+		Core.inRange(hsv, new Scalar(150, 0, 225), new Scalar(255, 255, 255),
 				redPixels2);
 
 		Mat stickPixels = new Mat();
@@ -155,20 +197,40 @@ public class ImageProcessor {
 		Mat circles = new Mat();
 
 		Imgproc.HoughCircles(stickPixels, circles, Imgproc.CV_HOUGH_GRADIENT,
-				1, 10, 350, 10, 20, 40);
+				1, 10, 350, 10, 10, 20);
 
-		double[] maxCircle = circles.get(0, 0);
-		for (int i = 0; i < circles.width(); i++) {
-			double[] circle = circles.get(0, i);
-			System.out.println(Arrays.toString(circle));
-			if (circle[2] > maxCircle[2])
-				maxCircle = circle;
-		}
-		
-		if (maxCircle == null)
+		// Find the circle that has the most area
+		double[] c = circles.get(0, 0); 
+		if (c == null){
+			logger.info("****** No robot found *******");
 			return null;
+		}
+
+		mask = new Mat(src.size(), CvType.CV_8UC1, new Scalar(0));
+		Point maxCircle = new Point(c[0], c[1]);
+		Core.circle(mask, maxCircle, (int)c[2], new Scalar(1), -1);
+		Mat circle = new Mat();
+		stickPixels.copyTo(circle, mask);
+		int maxCircleArea = Core.countNonZero(circle);
+				
+		for (int i = 1; i < circles.width(); i++) {						
+			c = circles.get(0, i);
+			
+			mask = new Mat(src.size(), CvType.CV_8UC1, new Scalar(0));
+			Point center = new Point(c[0], c[1]);
+			Core.circle(mask, center, (int)c[2], new Scalar(1), -1);
+			circle = new Mat();
+			stickPixels.copyTo(circle, mask);
+			int circleArea = Core.countNonZero(circle);
+			
+			if (circleArea > maxCircleArea)
+				maxCircle = center;			
+		}
+
+		logger.info("****** Found robot *******");
+		logger.debug(maxCircle.toString());
 		
-		return new Point(maxCircle[0], maxCircle[1]);
+		return maxCircle;
 	}
 
 	private void findHoughCircles() {

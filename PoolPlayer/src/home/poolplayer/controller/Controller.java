@@ -3,6 +3,7 @@ package home.poolplayer.controller;
 import home.poolplayer.imagecapture.ImageCapture;
 import home.poolplayer.imageproc.ImageProcessor;
 import home.poolplayer.io.SettingsReader;
+import home.poolplayer.messaging.Messages;
 import home.poolplayer.messaging.Messages.MessageNames;
 import home.poolplayer.messaging.Messenger;
 import home.poolplayer.model.CueStick;
@@ -10,19 +11,28 @@ import home.poolplayer.model.PoolBall;
 import home.poolplayer.model.PoolTable;
 import home.poolplayer.model.Robot;
 import home.poolplayer.model.Shot;
+import home.poolplayer.robot.Move;
+import home.poolplayer.robot.PathPlanner;
 import home.poolplayer.shotcalculator.ShotCalculator;
 
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
 import org.opencv.core.Mat;
 import org.opencv.core.Point;
 
-public class Controller extends Thread {
+public class Controller extends Thread implements PropertyChangeListener {
 
 	public static Controller instance;
+	public static String LOGGERNAME = "PoolPlayer";	
 
 	private static long WAIT_TIME = 2000;
+	
+	private static Logger logger;
 
 	private List<PoolBall> balls;
 	private CueStick cueStick;
@@ -30,11 +40,14 @@ public class Controller extends Thread {
 	private boolean solids;
 
 	private Robot robot;
-	
+
 	private ImageCapture imageCapture;
 	private ImageProcessor imageProcessor;
 
 	private boolean gameon;
+	private boolean pause;
+
+	private boolean uibusy;
 
 	private Controller() {
 		System.loadLibrary("cv2.so");
@@ -46,10 +59,17 @@ public class Controller extends Thread {
 		solids = true;
 
 		gameon = true;
+		pause = false;
+		uibusy = false;
+
 		imageCapture = ImageCapture.getInstance();
 		imageProcessor = ImageProcessor.getInstance();
-		
+
 		robot = new Robot();
+
+		Messenger.getInstance().addListener(this);
+		
+		logger = Logger.getLogger(LOGGERNAME);
 	}
 
 	public static Controller getInstance() {
@@ -63,43 +83,45 @@ public class Controller extends Thread {
 		while (gameon) {
 
 			try {
+				
+				if (pause) {
+					sleep(WAIT_TIME);
+					continue;
+				}
+
+				sendMessageToUIAndWait(MessageNames.CLEARUI, null);
+
 				// Clear all objects
 				balls.clear();
 				cueStick = null;
-				
-				
+				robot.setCenter(null);
+
 				// Capture image and let UI know
 				Mat img = imageCapture.getAvgImageTest();
-				Messenger.getInstance().broadcastMessage(
-						MessageNames.FRAME_AVAILABLE.name(), img);
+				sendMessageToUIAndWait(MessageNames.FRAME_AVAILABLE, img);
 
 				// Find balls and let UI know
 				balls = imageProcessor.findBalls(img);
-				Messenger.getInstance().broadcastMessage(
-						MessageNames.BALLS_DETECTED.name(), balls);
+				sendMessageToUIAndWait(MessageNames.BALLS_DETECTED, balls);
 
 				// Find cueStick and let UI know
 				cueStick = imageProcessor.findCueStick(img);
-				Messenger.getInstance().broadcastMessage(
-						MessageNames.CUESTICK_DETECTED.name(), cueStick);
+				sendMessageToUIAndWait(MessageNames.CUESTICK_DETECTED, cueStick);
 
+			
 				Point center = imageProcessor.finRobot(img);
 				robot.setCenter(center);
-				Messenger.getInstance().broadcastMessage(
-						MessageNames.ROBOT_DETECTED.name(), center);
-				
+				sendMessageToUIAndWait(MessageNames.ROBOT_DETECTED, center);
+
 				if (center == null) {
-					System.out.println("Bot center not found");
 					sleep(WAIT_TIME);
 					continue;
-				}				
+				}
 				if (balls == null || balls.isEmpty()) {
-					System.out.println("No balls found");
 					sleep(WAIT_TIME);
 					continue;
 				}
 				if (cueStick == null) {
-					System.out.println("No cue stick found");
 					sleep(WAIT_TIME);
 					continue;
 				}
@@ -107,12 +129,15 @@ public class Controller extends Thread {
 				// Find best shot
 				Shot bestShot = ShotCalculator.findBestShot();
 				if (bestShot == null) {
-					System.out.println("No shot possible");
 					sleep(WAIT_TIME);
 					continue;
 				}
-				Messenger.getInstance().broadcastMessage(
-						MessageNames.SHOT_FOUND.name(), bestShot);
+				sendMessageToUIAndWait(MessageNames.SHOT_FOUND, bestShot);
+
+				List<Move> path = PathPlanner.getPath(bestShot, img);
+				sendMessageToUIAndWait(MessageNames.PATH_FOUND, path);
+				
+//				robot.makeShot(bestShot, img);
 
 			} catch (Exception e) {
 				e.printStackTrace();
@@ -139,35 +164,67 @@ public class Controller extends Thread {
 	public void setSolids(boolean solids) {
 		this.solids = solids;
 	}
-	
+
 	public void setGameon(boolean gameon) {
 		this.gameon = gameon;
 	}
-	
+
 	public Robot getRobot() {
 		return robot;
 	}
-	
+
 	public void loadSettings(String settingsFile) {
+		Logger.getLogger(LOGGERNAME).setLevel(Level.INFO);
+
 		if (isAlive())
 			interrupt();
-		
+
 		new SettingsReader(settingsFile);
 
 		// Init various actors
 		table.initPocketPositions();
 		boolean success = imageCapture.initialize();
 		if (!success) {
-			System.out.println("Failed to initialize image capture");
-			return;
-		}
-		
-//		success = robot.initialize();
-		if (!success) {
-			System.out.println("Failed to initialize robot");
+			logger.fatal("Failed to initialize image capture");
 			return;
 		}
 
+		// success = robot.initialize();
+		if (!success) {
+			logger.fatal("Failed to initialize robot");
+			return;
+		}
+		
 		start();
+	}
+
+	private void sendMessageToUIAndWait(MessageNames message, Object packet) {
+		uibusy = true;
+		Messenger.getInstance().broadcastMessage(message.name(), packet);
+		while(uibusy){
+			try {
+				sleep(WAIT_TIME);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+		}
+	}
+
+	@Override
+	public void propertyChange(PropertyChangeEvent evt) {
+		switch (Messages.MessageNames.valueOf(evt.getPropertyName())) {
+		case UI_DONE:
+			uibusy = false;
+			break;
+		case PAUSE:
+			pause = (Boolean)evt.getNewValue();
+			if (pause)
+				logger.info("****** System paused *******");
+			else
+				logger.info("****** System resumed *******");
+			break;
+		default:
+			break;
+		}
 	}
 }
