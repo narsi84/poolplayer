@@ -15,12 +15,13 @@ import org.opencv.core.Point;
 
 public class PathPlanner {
 	static class Tuple {
-		int r, c, g;
+		int r, c, g, f;
 
-		public Tuple(int r_, int c_, int g_) {
+		public Tuple(int r_, int c_, int g_, int f_) {
 			r = r_;
 			c = c_;
 			g = g_;
+			f = f_;
 		}
 	}
 
@@ -29,9 +30,9 @@ public class PathPlanner {
 		@Override
 		public int compare(Tuple t1, Tuple t2) {
 
-			if (t1.g < t2.g)
+			if (t1.f < t2.f)
 				return -1;
-			if (t1.g > t2.g)
+			if (t1.f > t2.f)
 				return 1;
 			return 0;
 		}
@@ -108,12 +109,16 @@ public class PathPlanner {
 		Direction[][] policy = new Direction[height][width];
 		Direction[][] action = new Direction[height][width];
 		List<Direction> path = new ArrayList<PathPlanner.Direction>();
+		
+		//heuristic function
+		int[][]h = new int[height][width];
 
 		for (int i = 0; i < height; i++) {
 			for (int j = 0; j < width; j++) {
 				visited[i][j] = 0;
 				action[i][j] = Direction.O;
 				policy[i][j] = Direction.O;
+				h[i][j] = Math.abs( (int)goal.x - i ) + Math.abs( (int)goal.y - j);
 			}
 		}
 
@@ -122,10 +127,11 @@ public class PathPlanner {
 
 		int r = (int) origin.x, c = (int) origin.y;
 		int g = 0;
+		int f = g + h[r][c];
 
 		visited[r][c] = 1;
 
-		opened.add(new Tuple(r, c, g));
+		opened.add(new Tuple(r, c, g, f));
 
 		boolean found = false, resign = false;
 
@@ -150,6 +156,7 @@ public class PathPlanner {
 				int r2 = minTuple.r + dir.r;
 				int c2 = minTuple.c + dir.c;
 				int g2 = minTuple.g + dir.cost;
+				int f2 = g2 + h[r2][c2];
 
 				if (!(r2 >= 0 && c2 >= 0 && r2 < height && c2 < width))
 					continue;
@@ -157,7 +164,7 @@ public class PathPlanner {
 				if (visited[r2][c2] == 1 || grid[r2][c2] != 0)
 					continue;
 
-				Tuple newTuple = new Tuple(r2, c2, g2);
+				Tuple newTuple = new Tuple(r2, c2, g2,f2);
 				opened.add(newTuple);
 
 				visited[r2][c2] = 1;
