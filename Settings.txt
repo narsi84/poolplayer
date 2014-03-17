@@ -1,0 +1,30 @@
+#/Users/narsir/Documents/Projects/Poolplayer/images/Settings.txt
+[Game]
+	SOLIDS = false
+
+[Capture]
+	DEVICE_ID = 0
+
+[Table]
+	TABLE_X = 50
+	TABLE_Y = 50
+	TABLE_WIDTH = 100
+	TABLE_HEIGHT = 100
+
+	TABLE_FRICTION = 5
+	POCKET_RADIUS = 15
+
+	CLEARANCE = 100
+
+[Analysis]
+	MIN_CIRC_DIST = 10
+	HOUGH_THR = 350
+	ACCUMULATOR_THR = 10
+	MIN_RADIUS = 5
+	MAX_RADIUS = 10
+
+	BLACK_LEVEL = 100
+	COLOR_RATIO_THR = 2.5
+	CUE_PIXEL_RATIO = 0.9
+	BLACK_PIXEL_RATIO = 0.3
+	WHITE_PIXEL_RATIO = 0.3

@@ -49,8 +49,10 @@ public class Controller extends Thread implements PropertyChangeListener {
 	private boolean uibusy;
 
 	private Controller() {
-		System.loadLibrary("cv2.so");
-		System.loadLibrary("libopencv_java245.dylib");
+//		System.loadLibrary("cv2.so");
+//		System.loadLibrary("libopencv_java245.dylib");
+
+		System.loadLibrary("opencv_java248.dll");
 
 		table = new PoolTable();
 		balls = new ArrayList<PoolBall>();
@@ -96,7 +98,7 @@ public class Controller extends Thread implements PropertyChangeListener {
 				robot.setCenter(null);
 
 				// Capture image and let UI know
-				Mat img = imageCapture.getAvgImageTest();
+				Mat img = imageCapture.getAvgImage();
 				sendMessageToUIAndWait(MessageNames.FRAME_AVAILABLE, img);
 
 				// Find balls and let UI know

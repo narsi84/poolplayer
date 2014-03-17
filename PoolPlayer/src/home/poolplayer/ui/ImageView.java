@@ -50,7 +50,7 @@ public class ImageView extends ViewPart implements SelectionListener,
 
 		configFileT = new Text(configC, SWT.BORDER);
 		configFileT
-				.setText("/Users/narsir/Documents/Projects/Poolplayer/images/Settings.txt");
+				.setText("C:\\Users\\narasimhan.rajagopal\\Documents\\GitHub\\poolplayer\\Settings.txt");
 
 		loadB = new Button(configC, SWT.PUSH);
 		loadB.setText("Load/Start");

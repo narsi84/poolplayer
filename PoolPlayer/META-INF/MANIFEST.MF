@@ -11,7 +11,7 @@ Require-Bundle: org.eclipse.ui,
 Bundle-ActivationPolicy: lazy
 Bundle-RequiredExecutionEnvironment: JavaSE-1.6
 Bundle-ClassPath: bin/,
- lib/opencv-245.jar,
+ lib/opencv-248.jar,
  lib/3rdparty/bcel.jar,
  lib/3rdparty/bluecove-gpl.jar,
  lib/3rdparty/bluecove.jar,
@@ -24,4 +24,4 @@ Bundle-ClassPath: bin/,
  lib/pccomm.jar,
  lib/pctools.jar,
  lib/log4j-1.2.17.jar
-Bundle-NativeCode: lib/libopencv_java245.dylib; lib/cv2.so; osname=macosx; processor=x86
+Bundle-NativeCode: lib/opencv_java248.dll; osname=win32; processor=x86
