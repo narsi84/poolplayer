@@ -24,7 +24,7 @@ public class Robot {
 
 	public Robot() {
 		center = new Point();
-		pilot = new RemotePilotControl();
+//		pilot = new RemotePilotControl();
 	}
 
 	public Robot(String nxtName_) {

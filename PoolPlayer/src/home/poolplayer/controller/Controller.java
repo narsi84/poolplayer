@@ -20,6 +20,7 @@ import java.beans.PropertyChangeListener;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.opencv.core.Mat;
 import org.opencv.core.Point;
@@ -71,6 +72,7 @@ public class Controller extends Thread implements PropertyChangeListener {
 		Messenger.getInstance().addListener(this);
 		
 		logger = Logger.getLogger(LOGGERNAME);
+		logger.setLevel(Level.DEBUG);
 	}
 
 	public static Controller getInstance() {
@@ -79,7 +81,32 @@ public class Controller extends Thread implements PropertyChangeListener {
 		return instance;
 	}
 
-	@Override
+	//@Override
+	public void run2() {
+		while (gameon) {
+
+			try {
+				
+				if (pause) {
+					sleep(WAIT_TIME);
+					continue;
+				}
+
+				sendMessageToUIAndWait(MessageNames.CLEARUI, null);
+
+				// Clear all objects
+				balls.clear();
+				cueStick = null;
+				robot.setCenter(null);
+
+				// Capture image and let UI know
+				Mat img = imageCapture.getAvgImage();
+				sendMessageToUIAndWait(MessageNames.FRAME_AVAILABLE, img);
+			}catch(Exception e){}
+		}
+	}
+	
+//	@Override
 	public void run() {
 		while (gameon) {
 
@@ -96,6 +123,7 @@ public class Controller extends Thread implements PropertyChangeListener {
 				balls.clear();
 				cueStick = null;
 				robot.setCenter(null);
+				System.gc();
 
 				// Capture image and let UI know
 				Mat img = imageCapture.getAvgImage();
@@ -138,7 +166,7 @@ public class Controller extends Thread implements PropertyChangeListener {
 				List<Move> path = PathPlanner.getPath(bestShot, img);
 				sendMessageToUIAndWait(MessageNames.PATH_FOUND, path);
 				
-				robot.makeShot(bestShot, path);
+	//			robot.makeShot(bestShot, path);
 
 			} catch (Exception e) {
 				e.printStackTrace();
@@ -192,7 +220,7 @@ public class Controller extends Thread implements PropertyChangeListener {
 			return;
 		}
 
-		success = robot.initialize();
+//		success = robot.initialize();
 		if (!success) {
 			logger.fatal("Failed to initialize robot");
 			return;

@@ -23,6 +23,12 @@ public class PathPlanner {
 			g = g_;
 			f = f_;
 		}
+		
+		@Override
+		public String toString() {
+			String s = "r: " + r + ", c:" + c + ", g: " + g + ", f: " + f;
+			return s;
+		}
 	}
 
 	static class TupleComparator implements Comparator<Tuple> {
@@ -62,8 +68,8 @@ public class PathPlanner {
 		int t_y = table.getY();
 		int clearance = (int) table.getClearance();
 
-		for (int i = t_y - clearance; i < t_y + t_h + clearance; i++)
-			for (int j = t_x - clearance; j < t_x + t_w + clearance; j++)
+		for (int i = t_y - clearance + 1; i < t_y + t_h + clearance - 1; i++)
+			for (int j = t_x - clearance + 1; j < t_x + t_w + clearance - 1; j++)
 				gridMap[i][j] = 1;
 
 		return gridMap;
@@ -142,7 +148,8 @@ public class PathPlanner {
 			}
 
 			Collections.sort(opened, comparator);
-			Tuple minTuple = opened.remove(0);		
+			Tuple minTuple = opened.remove(0);
+			//System.out.println("Picking: " + minTuple);
 
 			if (minTuple.r == goal.x && minTuple.c == goal.y) {
 				found = true;
@@ -156,16 +163,24 @@ public class PathPlanner {
 				int r2 = minTuple.r + dir.r;
 				int c2 = minTuple.c + dir.c;
 				int g2 = minTuple.g + dir.cost;
-				int f2 = g2 + h[r2][c2];
 
 				if (!(r2 >= 0 && c2 >= 0 && r2 < height && c2 < width))
 					continue;
 
+				int f2 = g2 + h[r2][c2];
+
 				if (visited[r2][c2] == 1 || grid[r2][c2] != 0)
+				{
+					if(r2==573 && c2==480)
+					{
+					  System.out.println("Blocked Grid r: " + r2 + " c: " + c2);
+					}
 					continue;
+				}
 
 				Tuple newTuple = new Tuple(r2, c2, g2,f2);
 				opened.add(newTuple);
+				//System.out.println(newTuple);
 
 				visited[r2][c2] = 1;
 				action[r2][c2] = dir;
@@ -315,22 +330,26 @@ public class PathPlanner {
 	}
 	
 	public static void main(String[] args) {
-		int[][] grid = new int[1280][720];
+		int[][] grid = new int[896][1600];
 		for(int r=0; r<grid.length; r++){
 			for(int c=0; c<grid[0].length; c++){
 				grid[r][c] = 0;
 			}
 		}
 
-		// Mask out center 400x600 
-		for(int r=575-20; r<850+20; r++){
-			for(int c=160-20; c<620+20; c++){
+		// Mask out center 400x600
+		int clearence = 50;
+		for(int r=270-clearence; r<635+clearence; r++){
+			for(int c=530-clearence; c<1185+clearence; c++){
 				grid[r][c] = 1;
 			}
 		}
 
-		Point origin = new Point(413, 357);
-		Point goal = new Point(857, 640);
+		Point origin = new Point(514, 264);
+		Point goal = new Point(573, 479);
+
+//		Point origin = new Point(264, 514);
+//		Point goal = new Point(480, 573);
 
 		List<Move> moves = getShortestPath(grid, origin, goal);
 		for(Move m : moves){

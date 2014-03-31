@@ -56,6 +56,7 @@ public class ImageProcessor {
 		this.balls.clear();
 
 		findHoughCircles();
+
 		removeNoisyBalls();
 		removeBallsInPockets();
 		findBallType();
@@ -92,25 +93,25 @@ public class ImageProcessor {
 	public CueStick findCueStick(Mat img) {
 		logger.info("****** Finding cue stick *******");
 
-		if (logger.getLevel() == Level.DEBUG) {
+		if (logger.getLevel().toInt() >= Level.DEBUG.toInt()) {
 			Mat dmp = new Mat();
 			Imgproc.cvtColor(img, dmp, Imgproc.COLOR_BGR2RGB);
 			Highgui.imwrite(
-					"/Users/narsir/Documents/Projects/Poolplayer/images/rgb.png",
+					"C:\\Users\\narsi_000\\Documents\\Projects\\images\\rgb.png",
 					dmp);
 		}
 		
 		
 		Mat hsv = new Mat();
-		Imgproc.cvtColor(img, hsv, Imgproc.COLOR_BGR2HSV_FULL);
+		Imgproc.cvtColor(img, hsv, Imgproc.COLOR_RGB2HSV_FULL);
 
-		// In HSV, red pixels are 225-15
+		// In HSV, red pixels are H(225-15) and V(150-255)
 		Mat redPixels1 = new Mat();
-		Core.inRange(hsv, new Scalar(150, 0, 0), new Scalar(255, 255, 15),
+		Core.inRange(hsv, new Scalar(0, 0, 150), new Scalar(15, 255, 255),
 				redPixels1);
 
 		Mat redPixels2 = new Mat();
-		Core.inRange(hsv, new Scalar(150, 0, 225), new Scalar(255, 255, 255),
+		Core.inRange(hsv, new Scalar(225, 0, 150), new Scalar(255, 255, 255),
 				redPixels2);
 
 		Mat stickPixels = new Mat();
@@ -121,9 +122,9 @@ public class ImageProcessor {
 		Imgproc.morphologyEx(stickPixels, stickPixels, Imgproc.MORPH_CLOSE,
 				kernel);
 
-		if (logger.getLevel() == Level.DEBUG) {
+		if (logger.getLevel().toInt() >= Level.DEBUG.toInt()) {
 			Highgui.imwrite(
-					"/Users/narsir/Documents/Projects/Poolplayer/images/stickpixels.png",
+					"C:\\Users\\narsi_000\\Documents\\Projects\\images\\stickpixels.png",
 					stickPixels);
 		}
 		
@@ -173,22 +174,22 @@ public class ImageProcessor {
 		// Mask out the table
 		PoolTable t = Controller.getInstance().getTable();
 		Mat mask = new Mat(src.size(), CvType.CV_8UC1, new Scalar(1));
-		Core.rectangle(mask, new Point(t.getX(), t.getY()), new Point(t.getX()
-				+ t.getWidth(), t.getY() + t.getHeight()), new Scalar(0), -1);
+		Core.rectangle(mask, new Point(t.getX()- t.getPocketRadius(), t.getY() - t.getPocketRadius()), new Point(t.getX()
+				+ t.getWidth() + t.getPocketRadius(), t.getY() + t.getHeight() + t.getPocketRadius()), new Scalar(0), -1);
 
 		Mat img = new Mat();
 		src.copyTo(img, mask);
 
 		Mat hsv = new Mat();
-		Imgproc.cvtColor(img, hsv, Imgproc.COLOR_BGR2HSV_FULL);
+		Imgproc.cvtColor(img, hsv, Imgproc.COLOR_RGB2HSV_FULL);
 
-		// In HSV, red pixels are 225-15
+		// In HSV, red pixels are H(225-15) and V(150-255)
 		Mat redPixels1 = new Mat();
-		Core.inRange(hsv, new Scalar(150, 0, 0), new Scalar(255, 255, 15),
+		Core.inRange(hsv, new Scalar(0, 0, 150), new Scalar(15, 255, 255),
 				redPixels1);
 
 		Mat redPixels2 = new Mat();
-		Core.inRange(hsv, new Scalar(150, 0, 225), new Scalar(255, 255, 255),
+		Core.inRange(hsv, new Scalar(225, 0, 150), new Scalar(255, 255, 255),
 				redPixels2);
 
 		Mat stickPixels = new Mat();
@@ -197,7 +198,7 @@ public class ImageProcessor {
 		Mat circles = new Mat();
 
 		Imgproc.HoughCircles(stickPixels, circles, Imgproc.CV_HOUGH_GRADIENT,
-				1, 10, 350, 10, 10, 20);
+				1, 10, params.getHoughThreshold(), params.getAccumulatorThreshold()/2, params.getMinRadius(), params.getMaxRadius()*2);
 
 		// Find the circle that has the most area
 		double[] c = circles.get(0, 0); 
@@ -269,7 +270,7 @@ public class ImageProcessor {
 				double dist = Math.sqrt((c1.getX() - c2.getX())
 						* (c1.getX() - c2.getX()) + (c1.getY() - c2.getY())
 						* (c1.getY() - c2.getY()));
-				if (dist < 5) {
+				if (dist < params.getMinCircleDist()) {
 					if (c1.getR() < c2.getR())
 						toRemove.add(c1);
 					else
@@ -283,10 +284,10 @@ public class ImageProcessor {
 
 	private void removeBallsInPockets() {
 		List<PoolBall> toRemove = new ArrayList<PoolBall>();
+		PoolTable t = Controller.getInstance().getTable();
 		for (PoolBall ball : balls) {
-			for (PoolCircle pocket : Controller.getInstance().getTable()
-					.getPockets()) {
-				if (pocket.isPointWithin(ball.getX(), ball.getY()))
+			for (PoolCircle pocket : t.getPockets()) {
+				if (pocket.isPointWithin(ball.getX() + t.getX(), ball.getY() + t.getY()))
 					toRemove.add(ball);
 			}
 		}

@@ -10,7 +10,8 @@ import org.opencv.highgui.VideoCapture;
 public class ImageCapture {
 
 	private static ImageCapture instance;
-	private static int BUFFER_SIZE = 100;
+//	private static int BUFFER_SIZE = 100;
+	private static int BUFFER_SIZE = 20;
 
 	private static int FRAME_INDEX;
 
@@ -34,7 +35,15 @@ public class ImageCapture {
 
 		// Wait for sometime. Otherwise the mac cam doesnt get initialized.
 		try {
-			Thread.sleep(2000);
+			Thread.sleep(4000);
+			videoCapture.set(Highgui.CV_CAP_PROP_FRAME_HEIGHT, 2000);
+			videoCapture.set(Highgui.CV_CAP_PROP_FRAME_WIDTH, 4000);
+
+			System.out.println("Height: "
+					+ videoCapture.get(Highgui.CV_CAP_PROP_FRAME_HEIGHT));
+			System.out.println("Width: "
+					+ videoCapture.get(Highgui.CV_CAP_PROP_FRAME_WIDTH));
+
 		} catch (InterruptedException e1) {
 			e1.printStackTrace();
 		}
