@@ -3,7 +3,7 @@
 	SOLIDS = true
 
 [Capture]
-	DEVICE_ID = 2
+	DEVICE_ID = 0
 
 [Table]
 	TABLE_X = 530
@@ -24,7 +24,11 @@
 	MAX_RADIUS = 25
 
 	BLACK_LEVEL = 100
-	COLOR_RATIO_THR = 2.2
+	COLOR_RATIO_THR = 2
 	CUE_PIXEL_RATIO = 0.9
 	BLACK_PIXEL_RATIO = 0.3
 	WHITE_PIXEL_RATIO = 0.3
+
+[General]
+	LOGLEVEL = DEBUG
+	DEBUG_FOLDER = "C:\Users\narsi_000\Documents\Projects\images"

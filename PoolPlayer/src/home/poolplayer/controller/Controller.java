@@ -2,6 +2,7 @@ package home.poolplayer.controller;
 
 import home.poolplayer.imagecapture.ImageCapture;
 import home.poolplayer.imageproc.ImageProcessor;
+import home.poolplayer.io.SettingNames;
 import home.poolplayer.io.SettingsReader;
 import home.poolplayer.messaging.Messages;
 import home.poolplayer.messaging.Messages.MessageNames;
@@ -19,6 +20,7 @@ import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Properties;
 
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -28,10 +30,10 @@ import org.opencv.core.Point;
 public class Controller extends Thread implements PropertyChangeListener {
 
 	public static Controller instance;
-	public static String LOGGERNAME = "PoolPlayer";	
+	public static String LOGGERNAME = "PoolPlayer";
 
 	private static long WAIT_TIME = 1000;
-	
+
 	private static Logger logger;
 
 	private List<PoolBall> balls;
@@ -48,10 +50,12 @@ public class Controller extends Thread implements PropertyChangeListener {
 	private boolean pause;
 
 	private boolean uibusy;
+	
+	private Properties settings;
 
 	private Controller() {
-//		System.loadLibrary("cv2.so");
-//		System.loadLibrary("libopencv_java245.dylib");
+		// System.loadLibrary("cv2.so");
+		// System.loadLibrary("libopencv_java245.dylib");
 
 		System.loadLibrary("opencv_java248.dll");
 
@@ -70,7 +74,7 @@ public class Controller extends Thread implements PropertyChangeListener {
 		robot = new Robot();
 
 		Messenger.getInstance().addListener(this);
-		
+
 		logger = Logger.getLogger(LOGGERNAME);
 		logger.setLevel(Level.DEBUG);
 	}
@@ -81,12 +85,12 @@ public class Controller extends Thread implements PropertyChangeListener {
 		return instance;
 	}
 
-	//@Override
+	// @Override
 	public void run2() {
 		while (gameon) {
 
 			try {
-				
+
 				if (pause) {
 					sleep(WAIT_TIME);
 					continue;
@@ -102,16 +106,18 @@ public class Controller extends Thread implements PropertyChangeListener {
 				// Capture image and let UI know
 				Mat img = imageCapture.getAvgImage();
 				sendMessageToUIAndWait(MessageNames.FRAME_AVAILABLE, img);
-			}catch(Exception e){}
+				
+			} catch (Exception e) {
+			}
 		}
 	}
-	
-//	@Override
+
+	// @Override
 	public void run() {
 		while (gameon) {
 
 			try {
-				
+
 				if (pause) {
 					sleep(WAIT_TIME);
 					continue;
@@ -137,25 +143,23 @@ public class Controller extends Thread implements PropertyChangeListener {
 				cueStick = imageProcessor.findCueStick(img);
 				sendMessageToUIAndWait(MessageNames.CUESTICK_DETECTED, cueStick);
 
-			
-				Point center = imageProcessor.finRobot(img);
-				robot.setCenter(center);
-				sendMessageToUIAndWait(MessageNames.ROBOT_DETECTED, center);
-
-				if (center == null) {
-					sleep(WAIT_TIME);
-					continue;
-				}
-				if (balls == null || balls.isEmpty()) {
-					sleep(WAIT_TIME);
-					continue;
-				}
 				if (cueStick == null) {
 					sleep(WAIT_TIME);
 					continue;
 				}
+				
+				Point center = new Point( (cueStick.start.x+cueStick.end.x)/2, (cueStick.start.y+cueStick.end.y)/2 );
+				robot.setCenter(center);
+				logger.info("****** Found robot *******");
+				logger.debug(robot.toString());				
+				sendMessageToUIAndWait(MessageNames.ROBOT_DETECTED, center);
 
-				// Find best shot
+		 		if (balls == null || balls.isEmpty()) {
+					sleep(WAIT_TIME);
+					continue;
+				}
+
+		 		// Find best shot
 				Shot bestShot = ShotCalculator.findBestShot();
 				if (bestShot == null) {
 					sleep(WAIT_TIME);
@@ -165,8 +169,8 @@ public class Controller extends Thread implements PropertyChangeListener {
 
 				List<Move> path = PathPlanner.getPath(bestShot, img);
 				sendMessageToUIAndWait(MessageNames.PATH_FOUND, path);
-				
-	//			robot.makeShot(bestShot, path);
+
+				// robot.makeShot(bestShot, path);
 
 			} catch (Exception e) {
 				e.printStackTrace();
@@ -205,13 +209,24 @@ public class Controller extends Thread implements PropertyChangeListener {
 	public void setCueStick(CueStick cueStick) {
 		this.cueStick = cueStick;
 	}
+
+	public Properties getSettings() {
+		return settings;
+	}
+	
+	public void setSettings(Properties settings) {
+		this.settings = settings;
+	}
 	
 	public void loadSettings(String settingsFile) {
 		if (isAlive())
 			interrupt();
 
 		new SettingsReader(settingsFile);
-
+		String val = settings.getProperty(SettingNames.LOGLEVEL.name());
+		if (val != null)
+			logger.setLevel(Level.toLevel(val));
+		
 		// Init various actors
 		table.initPocketPositions();
 		boolean success = imageCapture.initialize();
@@ -220,19 +235,19 @@ public class Controller extends Thread implements PropertyChangeListener {
 			return;
 		}
 
-//		success = robot.initialize();
+		// success = robot.initialize();
 		if (!success) {
 			logger.fatal("Failed to initialize robot");
 			return;
 		}
-		
+
 		start();
 	}
 
 	private void sendMessageToUIAndWait(MessageNames message, Object packet) {
 		uibusy = true;
 		Messenger.getInstance().broadcastMessage(message.name(), packet);
-		while(uibusy){
+		while (uibusy) {
 			try {
 				sleep(WAIT_TIME);
 			} catch (InterruptedException e) {
@@ -248,7 +263,7 @@ public class Controller extends Thread implements PropertyChangeListener {
 			uibusy = false;
 			break;
 		case PAUSE:
-			pause = (Boolean)evt.getNewValue();
+			pause = (Boolean) evt.getNewValue();
 			if (pause)
 				logger.info("****** System paused *******");
 			else

@@ -24,4 +24,7 @@ public enum SettingNames {
 	SOLIDS,
 	
 	CLEARANCE,
+	
+	LOGLEVEL,
+	DEBUG_FOLDER
 }

@@ -15,6 +15,7 @@ public class SettingsReader extends ConfigFileReader {
 	public static final String ANALYSIS_PARAMS = "Analysis";
 	public static final String CAPTURE_SETTINGS = "Capture";
 	public static final String GAME_SETTINGS = "Game";
+	public static final String GENERAL_SETTINGS = "General";
 
 	public SettingsReader(String fname) {
 		super(fname);
@@ -35,9 +36,17 @@ public class SettingsReader extends ConfigFileReader {
 				parseAnalysisSettings(sec);
 			if (sec.getName().compareToIgnoreCase(CAPTURE_SETTINGS) == 0)
 				parseCaptureSettings(sec);
+			if (sec.getName().compareToIgnoreCase(GENERAL_SETTINGS) == 0)
+				parseGeneralSettings(sec);
+			
 		}
 	}
 	
+	private void parseGeneralSettings(Section section) {
+		Properties props = section.getProps();
+		Controller.getInstance().setSettings(props);
+	}
+
 	private void parseGameSettings(Section section){
 		String val;
 		

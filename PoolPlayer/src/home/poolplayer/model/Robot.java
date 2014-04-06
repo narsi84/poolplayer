@@ -48,7 +48,17 @@ public class Robot {
 		this.nxtName = nxtName;
 	}
 
-	public double getOrientation() {
+	public double getOrientation(){
+		CueStick stick = Controller.getInstance().getCueStick();
+		if (stick == null)
+			return Double.NaN;
+
+		double deg = 90 - Math.atan2(stick.end.y - stick.start.y, stick.end.x - stick.start.x) * 180 / Math.PI;
+		return deg;
+		//		return deg > 0 ? deg : 360 + deg;
+	}
+	
+	public double getOrientation2() {
 		CueStick stick = Controller.getInstance().getCueStick();
 		if (stick == null)
 			return Double.NaN;
@@ -137,6 +147,11 @@ public class Robot {
 		return true;
 	}
 
+	@Override
+	public String toString() {
+		return center.toString() +  ", " + getOrientation() + " N";
+	}
+	
 	public static void main(String[] args) {
 		CueStick stick = new CueStick(new Point(396.0, 103.0), new Point(407.0,
 				559.0));

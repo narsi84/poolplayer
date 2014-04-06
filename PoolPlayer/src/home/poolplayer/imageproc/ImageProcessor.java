@@ -82,93 +82,74 @@ public class ImageProcessor {
 		return balls;
 	}
 
-	/**
-	 * Convert image to HSV and find all red bright pixels. Remove noise by
-	 * morph closing. Find Hough lines. Find the longest line from a set of
-	 * segments.
-	 * 
-	 * @param img
-	 * @return
-	 */
-	public CueStick findCueStick(Mat img) {
+	public CueStick findCueStick(Mat src){
 		logger.info("****** Finding cue stick *******");
 
 		if (logger.getLevel().toInt() >= Level.DEBUG.toInt()) {
 			Mat dmp = new Mat();
-			Imgproc.cvtColor(img, dmp, Imgproc.COLOR_BGR2RGB);
+			Imgproc.cvtColor(src, dmp, Imgproc.COLOR_BGR2RGB);
 			Highgui.imwrite(
 					"C:\\Users\\narsi_000\\Documents\\Projects\\images\\rgb.png",
 					dmp);
 		}
 		
-		
+		// Mask out the table
+		PoolTable t = Controller.getInstance().getTable();
+		Mat mask = new Mat(src.size(), CvType.CV_8UC1, new Scalar(1));
+		Core.rectangle(mask, new Point(t.getX()- t.getPocketRadius(), t.getY() - t.getPocketRadius()), new Point(t.getX()
+				+ t.getWidth() + t.getPocketRadius(), t.getY() + t.getHeight() + t.getPocketRadius()), new Scalar(0), -1);
+
+		Mat img = new Mat();
+		src.copyTo(img, mask);
+
 		Mat hsv = new Mat();
 		Imgproc.cvtColor(img, hsv, Imgproc.COLOR_RGB2HSV_FULL);
 
-		// In HSV, red pixels are H(225-15) and V(150-255)
-		Mat redPixels1 = new Mat();
-		Core.inRange(hsv, new Scalar(0, 0, 150), new Scalar(15, 255, 255),
-				redPixels1);
+		// Cue stick is green circle start and blue circle end
+		// In HSV, green pixels are H(35-70) and V(50-255)
+		Mat greenPixels = new Mat();
+		Core.inRange(hsv, new Scalar(35, 0, 50), new Scalar(70, 255, 255),
+				greenPixels);
+		Highgui.imwrite(
+				"C:\\Users\\narsi_000\\Documents\\Projects\\images\\green.png",
+				greenPixels);
 
-		Mat redPixels2 = new Mat();
-		Core.inRange(hsv, new Scalar(225, 0, 150), new Scalar(255, 255, 255),
-				redPixels2);
+		Mat circles = new Mat();
 
-		Mat stickPixels = new Mat();
-		Core.bitwise_or(redPixels1, redPixels2, stickPixels);
+		Imgproc.HoughCircles(greenPixels, circles, Imgproc.CV_HOUGH_GRADIENT,
+				1, 10, params.getHoughThreshold(), params.getAccumulatorThreshold()/2, params.getMinRadius()*2, params.getMaxRadius()*2);
 
-		Mat kernel = Imgproc.getStructuringElement(Imgproc.MORPH_ELLIPSE,
-				new Size(5, 5));
-		Imgproc.morphologyEx(stickPixels, stickPixels, Imgproc.MORPH_CLOSE,
-				kernel);
+		Point greenCircle = findBiggestCircle(circles, greenPixels);
+				
+		//Find blue circle
+		// In HSV, blue pixels are H(135-170) and V(50-255)
+		Mat bluePixels = new Mat();
+		Core.inRange(hsv, new Scalar(135, 0, 50), new Scalar(170, 255, 255),
+				bluePixels);
+		Highgui.imwrite(
+				"C:\\Users\\narsi_000\\Documents\\Projects\\images\\blue.png",
+				bluePixels);
 
-		if (logger.getLevel().toInt() >= Level.DEBUG.toInt()) {
-			Highgui.imwrite(
-					"C:\\Users\\narsi_000\\Documents\\Projects\\images\\stickpixels.png",
-					stickPixels);
-		}
+		circles = new Mat();
+
+		Imgproc.HoughCircles(bluePixels, circles, Imgproc.CV_HOUGH_GRADIENT,
+				1, 10, params.getHoughThreshold(), params.getAccumulatorThreshold()/2, params.getMinRadius()*2, params.getMaxRadius()*2);
+
+		Point blueCircle = findBiggestCircle(circles, bluePixels);
 		
-		Mat lines = new Mat();
-		Imgproc.HoughLinesP(stickPixels, lines, 1, Math.PI / 180,
-				(int) params.getBlackLevel(), 100, 40);
-
-		if (lines.empty()){
+		if (greenCircle == null || blueCircle == null){
 			logger.info("****** No cue stick found *******");
 			return null;
 		}
-
-		double[] line = lines.get(0, 0);
-
-		Point start = new Point(line[0], line[1]);
-		Point end = new Point(line[2], line[3]);
-		double angle = Math.atan2(line[3] - line[1], line[2] - line[0]);
-
-		for (int i = 0; i < lines.width(); i++) {
-			line = lines.get(0, i);
-
-			double thisangle = Math.atan2(line[3] - line[1], line[2] - line[0]);
-			if (Math.abs(thisangle - angle) < 0.02) {
-				if (line[0] < start.x) {
-					start.x = line[0];
-					start.y = line[1];
-				}
-
-				if (line[2] > end.x) {
-					end.x = line[2];
-					end.y = line[3];
-				}
-			}
-		}
-
-		CueStick stick = new CueStick(start, end);
 		
+		CueStick stick = new CueStick(greenCircle, blueCircle);
 		logger.info("****** Found cue stick *******");
 		logger.debug(stick.toString());
-		
+
 		return stick;
 	}
-
-	public Point finRobot(Mat src) {
+	
+	public Point finRobot2(Mat src) {
 		logger.info("****** Finding robot *******");
 		
 		// Mask out the table
@@ -200,6 +181,10 @@ public class ImageProcessor {
 		Imgproc.HoughCircles(stickPixels, circles, Imgproc.CV_HOUGH_GRADIENT,
 				1, 10, params.getHoughThreshold(), params.getAccumulatorThreshold()/2, params.getMinRadius(), params.getMaxRadius()*2);
 
+		return findBiggestCircle(circles, stickPixels);
+	}
+
+	private Point findBiggestCircle(Mat circles, Mat src){
 		// Find the circle that has the most area
 		double[] c = circles.get(0, 0); 
 		if (c == null){
@@ -207,33 +192,30 @@ public class ImageProcessor {
 			return null;
 		}
 
-		mask = new Mat(src.size(), CvType.CV_8UC1, new Scalar(0));
+		Mat mask = new Mat(src.size(), CvType.CV_8UC1, new Scalar(0));
 		Point maxCircle = new Point(c[0], c[1]);
 		Core.circle(mask, maxCircle, (int)c[2], new Scalar(1), -1);
 		Mat circle = new Mat();
-		stickPixels.copyTo(circle, mask);
+		src.copyTo(circle, mask);
 		int maxCircleArea = Core.countNonZero(circle);
 				
 		for (int i = 1; i < circles.width(); i++) {						
 			c = circles.get(0, i);
 			
 			mask = new Mat(src.size(), CvType.CV_8UC1, new Scalar(0));
-			Point center = new Point(c[0], c[1]);
+ 			Point center = new Point(c[0], c[1]);
 			Core.circle(mask, center, (int)c[2], new Scalar(1), -1);
 			circle = new Mat();
-			stickPixels.copyTo(circle, mask);
+			src.copyTo(circle, mask);
 			int circleArea = Core.countNonZero(circle);
 			
 			if (circleArea > maxCircleArea)
 				maxCircle = center;			
 		}
 
-		logger.info("****** Found robot *******");
-		logger.debug(maxCircle.toString());
-		
-		return maxCircle;
+		return maxCircle;		
 	}
-
+	
 	private void findHoughCircles() {
 		List<Mat> rgb = new ArrayList<Mat>();
 		Core.split(tableImg, rgb);
