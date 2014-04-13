@@ -32,6 +32,7 @@ public class ApplicationWorkbenchAdvisor extends WorkbenchAdvisor {
 			e.printStackTrace();
 		}
 		
+		System.exit(0);
 		return super.preShutdown();
 	}
 

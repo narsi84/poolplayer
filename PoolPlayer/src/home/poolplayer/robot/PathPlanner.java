@@ -242,7 +242,7 @@ public class PathPlanner {
 	// Find all sides where the above line intersects the bounding box. This
 	// is where the bot can be. Of all the above points, find the one where
 	// the dist from bot-cue < bot-ghost
-	private static Point getGoal(Shot shot) {
+	public static Point getGoal(Shot shot) {
 		double y1 = shot.cueBall.getY(), x1 = shot.cueBall.getX();
 		double y2 = shot.ghost.getY(), x2 = shot.ghost.getX();
 

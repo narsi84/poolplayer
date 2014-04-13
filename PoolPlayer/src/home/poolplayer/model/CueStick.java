@@ -46,6 +46,12 @@ public class CueStick {
 				* (p1.x - p0.x));
 	}
 	
+	public double getLength(){
+		if (start == null || end == null)
+			return Double.NaN;
+		return Math.sqrt((end.y - start.y)*(end.y - start.y) + (end.x - start.x)*(end.x - start.x));
+	}
+	
 	@Override
 	public String toString() {
 		return "(" + start.x + ", " + start.y + ") - (" + end.x + ", " + end.y + ")" ;  

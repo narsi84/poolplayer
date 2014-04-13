@@ -56,7 +56,7 @@ public class ImageView extends ViewPart implements SelectionListener,
 		loadB.setText("Load/Start");
 
 		pauseB = new Button(configC, SWT.TOGGLE);
-		pauseB.setText("Pause");
+		pauseB.setText("Pause/Resume");
 		pauseB.setSelection(false);
 		
 		imageCanvas = new PoolCanvas(parent);

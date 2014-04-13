@@ -25,7 +25,7 @@ import java.util.Properties;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.opencv.core.Mat;
-import org.opencv.core.Point;
+import org.opencv.highgui.Highgui;
 
 public class Controller extends Thread implements PropertyChangeListener {
 
@@ -101,13 +101,17 @@ public class Controller extends Thread implements PropertyChangeListener {
 				// Clear all objects
 				balls.clear();
 				cueStick = null;
-				robot.setCenter(null);
+//				robot.setCenter(null);
 
 				// Capture image and let UI know
 				Mat img = imageCapture.getAvgImage();
+				Highgui.imwrite(
+						"C:\\Users\\narsi_000\\Documents\\Projects\\images\\calib.png",
+						img);
 				sendMessageToUIAndWait(MessageNames.FRAME_AVAILABLE, img);
-				
+								
 			} catch (Exception e) {
+				logger.error(e.getMessage());
 			}
 		}
 	}
@@ -147,12 +151,11 @@ public class Controller extends Thread implements PropertyChangeListener {
 					sleep(WAIT_TIME);
 					continue;
 				}
-				
-				Point center = new Point( (cueStick.start.x+cueStick.end.x)/2, (cueStick.start.y+cueStick.end.y)/2 );
-				robot.setCenter(center);
+								
+				robot.setCenter(cueStick.end);
 				logger.info("****** Found robot *******");
 				logger.debug(robot.toString());				
-				sendMessageToUIAndWait(MessageNames.ROBOT_DETECTED, center);
+				sendMessageToUIAndWait(MessageNames.ROBOT_DETECTED, robot.getCenter());
 
 		 		if (balls == null || balls.isEmpty()) {
 					sleep(WAIT_TIME);
@@ -170,7 +173,9 @@ public class Controller extends Thread implements PropertyChangeListener {
 				List<Move> path = PathPlanner.getPath(bestShot, img);
 				sendMessageToUIAndWait(MessageNames.PATH_FOUND, path);
 
-				// robot.makeShot(bestShot, path);
+				robot.makeShot(bestShot, path);
+				
+				Messenger.getInstance().broadcastMessage(MessageNames.PAUSE.name(), true);
 
 			} catch (Exception e) {
 				e.printStackTrace();
@@ -235,7 +240,7 @@ public class Controller extends Thread implements PropertyChangeListener {
 			return;
 		}
 
-		// success = robot.initialize();
+		success = robot.initialize();
 		if (!success) {
 			logger.fatal("Failed to initialize robot");
 			return;

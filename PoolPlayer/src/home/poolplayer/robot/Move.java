@@ -12,4 +12,9 @@ public class Move {
 		dist = dist_;
 		direction = dir_;
 	}
+	
+	@Override
+	public String toString() {
+		return "Dist: " + dist + ", Dir: " + direction;
+	}
 }

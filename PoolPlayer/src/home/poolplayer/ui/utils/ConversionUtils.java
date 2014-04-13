@@ -10,6 +10,9 @@ import org.opencv.imgproc.Imgproc;
 
 public class ConversionUtils {
 
+	public static void main(String[] args) {
+		System.out.println(Math.atan2(2, 1) * 180/Math.PI);
+	}
 	public static ImageData convertMat2ImageData(Mat mat) {
 
 		Imgproc.cvtColor(mat, mat, Imgproc.COLOR_BGR2RGB);
